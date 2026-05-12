@@ -759,7 +759,7 @@ const DEMO_ISPS = [
     },
         riskFlags:['medical', 'ebsa'],
     strategies:{'social':'Structured lunchtime social group (1:4 ratio, 2x weekly). Morning check-in with key adult. Advance warning of any changes to routine via visual timetable. Quiet exit pass for overwhelming situations.', 'sensory':'Personalised sensory toolkit in all lessons: ear defenders, fidget tool, exit card. OT-prescribed sensory breaks. Dim/natural light where possible. Avoid seating near doors or high-traffic areas.', 'executive':'Visual task board on desk. Colour-coded timetable. TA check-in at lesson start. Tasks broken into 2-step chunks. Equipment check at end of each day.'},
-    seating:{'social':'Near a trusted peer; avoid socially unpredictable seating near the door.', 'sensory':'Front row away from windows and high-noise areas. Near TA base. Natural light preferred.', 'executive':'Near the board, away from distractions. TA within easy reach.'},
+    seating:{'sensory':'Front of room, away from windows and noise sources.'},
     voices:{ pupil:'I like it when I know what is going to happen. Lunch is the worst part of the day. I wish I could eat somewhere quieter.', parent:'Aarav is so much calmer when the routine is consistent. The sensory strategies are really helping at home too.' },
     apdr:[
       { date:'28 Apr 2026', target:0, progress:'some', schoolComment:'Aarav is attending the lunchtime group consistently. Still anxious on days with supply teachers.', parentComment:'He seems happier on most days. We are seeing progress.', nextSteps:'Introduce a predictability card for days when there are cover teachers.', by:'Miss A Jones — May half-term' },
@@ -788,7 +788,7 @@ const DEMO_ISPS = [
     },
         riskFlags:['behaviour'],
     strategies:{'social':'Personal regulation plan laminated on desk (identify → signal → step out). Weekly pastoral mentor session. Safe exit pass — always honoured without comment. De-escalation approach only; no public correction.', 'executive':'Feelings diary completed weekly with mentor. Emotional check-in at lesson start. Avoid cold-calling. Give advance notice before any feedback.'},
-    seating:{'social':'Near the door for discreet exit. Away from peers who are known triggers.', 'executive':'Near a calm, settled peer. Away from windows and distractions.'},
+    seating:{'social':'Near the door — needs discreet exit access.'},
     voices:{ pupil:'I get really upset sometimes and I don\'t know how to stop it. I like talking to Miss.', parent:'Amira has always been very sensitive. The counselling seems to be helping her reflect more.' },
     apdr:[
       { date:'15 Jan 2026', target:0, progress:'some', schoolComment:'Amira is using her regulation plan inconsistently. Some improvement in frequency of walkouts but still occurring weekly.', parentComment:'She seems calmer at home. Progress is slow but visible.', nextSteps:'ISP review due by end of summer term (Jul 2026). Schedule review meeting with parent.', by:'Miss A Jones — by 17 Jul 2026' },
@@ -819,7 +819,7 @@ const DEMO_ISPS = [
     },
     riskFlags:['safeguarding','cie','behaviour'],
     strategies:{ social:'Trauma-informed approach at all times. Key adult relationship is primary. Daily morning check-in (10 min). Managed exit to Inclusion Base when regulated. Never use sanctions without key adult consultation.', executive:'Visual scaffolding for all tasks. Reduce task demand when SEMH presentation is high. TA in-class support. Praise effort not outcome.', slc:'Traffic light communication card on desk. Chunked 2-step instructions. SALT strategies shared with all staff. Pre-teaching key vocabulary before lessons.' },
-    seating:{ social:'Near key adult at all times. Away from peers who are known triggers. Near exit.', executive:'Away from distractions. Quiet area of room. Near TA base.', slc:'Near board. Good line of sight to teacher. Avoid back of room.' },
+    seating:{ social:'Near door/exit at all times — managed exit plan in place.' },
     voices:{ pupil:'I like football. I like it when adults are fair and don\'t shout.', parent:'Kwame has had a really hard time. We just want him to be happy in school.' },
     apdr:[
       { date:'22 Apr 2026', target:0, progress:'some', schoolComment:'Attendance improving from 78% to 84%. Still has difficult days but duration of episodes is reducing.', parentComment:'He is getting up for school more readily. Something is working.', nextSteps:'Request EHCP statutory assessment. Continue CAMHS liaison.', by:'Miss A Jones — end of term' },
@@ -848,7 +848,7 @@ const DEMO_ISPS = [
     },
         riskFlags:[],
     strategies:{'slc':'Text-to-speech software on school laptop for all reading tasks. Never ask to read aloud without prior notice. Pre-teach vocabulary. Writing frames and sentence starters for all extended tasks.', 'executive':'Graphic organiser and mind maps for writing. Extended time for tasks. Allow verbal response as alternative to written where possible.'},
-    seating:{'slc':'Near the board. Good sightline to teacher. Laptop access on desk.', 'executive':'Quiet area. Away from distractions. Near TA if available.'},
+    seating:{},
     voices:{ pupil:'Reading is really hard for me. I feel embarrassed when I have to read out loud. I like it when I can just talk instead.', parent:'Imani has always found reading hard. We would really like her to get a proper assessment so we know what is going on.' },
     apdr:[
       { date:'22 Jan 2026', target:0, progress:'some', schoolComment:'Imani is engaging with the reading programme. Early data suggests progress but formal re-assessment not yet completed.', parentComment:'We are glad something is happening at last. Still waiting on the specialist assessment.', nextSteps:'ISP review due by end of summer term (Jul 2026). Book specialist teacher assessment before review.', by:'Miss A Jones — by 17 Jul 2026' },
@@ -879,7 +879,7 @@ const DEMO_ISPS = [
     },
         riskFlags:['cie', 'pep', 'exam', 'medical'],
     strategies:{'executive':'1:1 TA support in all lessons. Visual task board. Movement break every 20 minutes. Tasks broken into single steps. Immediate positive reinforcement.', 'motor':'Laptop for all written work. OT strategies in all lessons: writing slope, pencil grip, adaptive tools. Pre-writing gross motor warm-up.', 'slc':'All instructions chunked to 1–2 steps with visual cues. Pre-teaching key vocabulary before every lesson. Repeat and rephrase rather than redirect.'},
-    seating:{'executive':'Next to named TA at all times. Away from peers who distract. Near front.', 'motor':'Desk with space for laptop and adaptive tools. Good posture support.', 'slc':'Front row. Clear sightline to teacher and board. Near TA.'},
+    seating:{'executive':'Front of room, next to named TA at all times.'},
     voices:{ pupil:'I like cooking and PE. Writing hurts my hand. I like it when people don\'t rush me.', parent:'Foster carer reports Mateo is much happier at this school than his previous placement. The extra support is making a real difference.' },
     apdr:[
       { date:'25 Apr 2026', target:0, progress:'some', schoolComment:'Mateo is engaging better with tasks since medication trial began. Still needs frequent refocusing. Attendance concern — 79%.', parentComment:'Foster carer: he is sleeping better and seems more settled.', nextSteps:'PEP review due. Discuss EHCP annual review date with SENCO.', by:'Miss A Jones — end of term' },
@@ -908,7 +908,7 @@ const DEMO_ISPS = [
     },
         riskFlags:['medical'],
     strategies:{'social':'Graduated exposure plan for presentations (1:1 → small group → class). Advance notice of any group tasks (minimum 48 hours). Alternative assessment formats accepted. Do not cold-call.', 'sensory':'Early canteen access pass. Alternative seating in assembly. Anxiety self-monitoring card. Quiet room access on request.'},
-    seating:{'social':'Near a trusted peer. Aisle seat where possible for easy exit. Not in spotlight position.', 'sensory':'Away from noisy areas. Aisle seat. Near natural light. Not near speakers or doors.'},
+    seating:{'social':'Aisle seat near door — anxiety/exit access required.'},
     voices:{ pupil:'I feel sick before presentations. I just want to do well but I get too scared. I like it when teachers give me warning in advance.', parent:'Sofia puts so much pressure on herself. We are glad she is finally getting some support for her anxiety.' },
     apdr:[
       { date:'18 Apr 2026', target:0, progress:'good', schoolComment:'Sofia completed her first paired presentation last half-term. Great progress. CAMHS appointment now confirmed.', parentComment:'She was really proud of herself. A big step forward.', nextSteps:'Progress to small group presentation next half-term. Maintain CAMHS engagement.', by:'Miss A Jones — end of term' },
@@ -937,7 +937,7 @@ const DEMO_ISPS = [
     },
         riskFlags:['ebsa', 'medical'],
     strategies:{'social':'Relationship-first approach at all times. Key adult daily check-in (10 min). Do not make attendance a public issue. Flexible entry arrangements on difficult days. Immediate contact protocol if absent.', 'executive':'Chunked homework with extended deadlines. Mentor session for work completion support. Written feedback via email rather than in person where possible.'},
-    seating:{'social':'Near a trusted peer. Aisle seat. Low-pressure position in the room.', 'executive':'Settled, predictable seat. Away from distractions. Near the front.'},
+    seating:{},
     voices:{ pupil:'I find it hard to come in some days. When I do come in it is usually OK. I just need people not to make a big deal of it.', parent:'We have been through a very difficult two years. We are relieved he is in school. Please don\'t push too hard.' },
     apdr:[
       { date:'02 May 2026', target:0, progress:'good', schoolComment:'Attendance at 93% — best sustained period since Year 8. Noah is engaging well.', parentComment:'He is getting up for school without a battle most days. We are really pleased.', nextSteps:'Continue current approach. Begin discussion about GCSE option choices.', by:'Miss A Jones — end of term' },
@@ -966,7 +966,7 @@ const DEMO_ISPS = [
     },
         riskFlags:['selfharm', 'medical'],
     strategies:{'social':'Trauma-informed approach at all times. Daily pastoral check-in. Safe room access on request — always honoured. Do not discuss personal circumstances in class. Refer any concerns to safeguarding lead immediately.', 'executive':'Flexible homework expectations. Extended deadlines. Weekly mentor. Avoid high-pressure in-class tasks without notice.'},
-    seating:{'social':'Near a trusted peer. Discreet position. Near door for easy exit.', 'executive':'Calm, predictable position. Away from distractions.'},
+    seating:{'social':'Near door — needs discreet access to safe room.'},
     voices:{ pupil:'I feel much better than I did last year. I still have hard days but I have people I can talk to now.', parent:'We are so grateful for the support Olivia has received. She is in a much better place.' },
     apdr:[
       { date:'30 Apr 2026', target:0, progress:'good', schoolComment:'SEMH tracker score improved from 57 to 49. Olivia is engaged, attending counselling and has not missed a CAMHS appointment this term.', parentComment:'She is smiling again. It has been a very hard year but we are hopeful.', nextSteps:'Gradual increase of homework expectations as confidence builds.', by:'Miss A Jones — end of term' },
@@ -997,7 +997,7 @@ const DEMO_ISPS = [
     },
         riskFlags:['cie', 'exam', 'medical', 'ebsa'],
     strategies:{'executive':'Demand avoidance profile — avoid direct instruction where possible. Offer choices. Interest-led tasks where possible. Revision timetable is self-directed. Separate exam room with familiar invigilator.', 'social':'Key adult relationship is primary. Predictable, consistent environment. No unexpected changes without preparation. Managed exit always available.', 'sensory':'Noise-cancelling headphones available at all times. Natural light. Reduced sensory load in exam room. Sensory toolkit on desk.'},
-    seating:{'executive':'Consistent, assigned seat. Avoid proximity to high-energy peers.', 'social':'Near key adult. Quiet area. Predictable, same seat every lesson.', 'sensory':'Away from noise sources. Near natural light. Not near doors or corridors.'},
+    seating:{'sensory':'Away from doors and corridors — noise sensitivity. Same assigned seat every lesson.'},
     voices:{ pupil:'Exams make everything worse. I just need people to not push me. If I can do it in my own way I can actually show what I know.', parent:'Hiro has worked incredibly hard. We are very proud. Please just make sure the exam arrangements are in place.' },
     apdr:[
       { date:'28 Apr 2026', target:0, progress:'some', schoolComment:'Hiro completed all mock exams in separate room. Two partial withdrawals but re-engaged. Engagement with revision improving.', parentComment:'He is very stressed but holding together. The separate room makes a huge difference.', nextSteps:'Confirm all exam arrangements for GCSE season. Debrief after each exam.', by:'Miss A Jones — ongoing through exam period' },
@@ -1026,7 +1026,7 @@ const DEMO_ISPS = [
     },
         riskFlags:['medical'],
     strategies:{'social':'Cognitive restructuring toolkit on desk. Avoid public praise of performance. Normalise imperfection. Do not add pressure around deadlines. Counselling contact confidential.', 'executive':'Structured revision timetable with set stop times. Mentor-enforced. Avoid assigning additional work beyond standard expectations.'},
-    seating:{'social':'Settled, low-pressure position. Near a trusted peer. Not near high-achieving comparator peers.', 'executive':'Calm area. Away from distractions. Predictable seat.'},
+    seating:{},
     voices:{ pupil:'I know I put too much pressure on myself but I can\'t stop. I just really want to do well.', parent:'Mia works herself into the ground. We are more worried about her mental health than her grades, honestly.' },
     apdr:[
       { date:'01 May 2026', target:0, progress:'some', schoolComment:'Mia completed all mock exams without breakdown this year — significant improvement. Still anxious but using strategies.', parentComment:'She slept better this mock season. Progress.', nextSteps:'Continue counselling through GCSE season. Check in after each exam.', by:'Miss A Jones — ongoing' },
@@ -1507,7 +1507,7 @@ function renderStep0(el) {
   const hasReview = !!(o.reviewed);
 
   el.innerHTML = `
-    <div class="step-title">Plan overview</div>
+    <div class="step-title">📋 Plan overview</div>
     <div class="step-sub">Administrative details for ${state.student.fullName}'s ISP.</div>
     <div class="row-2">
       <div class="field"><label>Date ISP created</label><input type="date" id="s0-created" value="${o.created||today}" /></div>
@@ -1612,7 +1612,7 @@ function renderStep1(el) {
   const areas = Object.keys(AREA_LABELS);
   const fd = state.formData;
   el.innerHTML = `
-    <div class="step-title">Strengths, needs and strategies</div>
+    <div class="step-title">💡 Strengths, needs and strategies</div>
     <div class="step-sub">Select the development areas relevant to this student, then complete each section.</div>
     <div class="field">
       <label>Student summary paragraph</label>
@@ -1687,8 +1687,9 @@ function renderAreaPanels() {
         <textarea id="strat-${k}" placeholder="List specific targeted strategies, adjustments and interventions for this area (beyond HQT)..." style="min-height:80px">${fd.strategies[k]||''}</textarea>
       </div>
       <div class="field">
-        <label>Seating plan advice <span style="font-weight:400;color:var(--subtle)">(for this area)</span></label>
-        <input type="text" id="seat-${k}" placeholder="e.g. Front row, away from windows; near TA base; not near high-traffic areas" value="${fd.seating[k]||''}" />
+        <label>Seating — critical positional need only <span style="font-weight:400;color:var(--subtle)">(optional)</span></label>
+        <input type="text" id="seat-${k}" placeholder="e.g. Near door for exit access · Front row · Away from windows · Back of room" value="${fd.seating[k]||''}" />
+        <div class="hint">Only include if there is a genuine positional requirement (e.g. near a door for anxiety/managed exit, front row for attention, away from windows for sensory). Leave blank if no specific seating need.</div>
       </div>
     </div>`;
   }).join('');
@@ -1697,7 +1698,7 @@ function renderAreaPanels() {
 function renderStep2(el) {
   const h = state.formData.health;
   el.innerHTML = `
-    <div class="step-title">Health, care and wellbeing</div>
+    <div class="step-title">🏥 Health, care and wellbeing</div>
     <div class="step-sub">Record relevant health, social care and EHCP information for this student.</div>
     <div class="field"><label>Health / wellbeing notes</label>
       <textarea id="s2-health" placeholder="Include diagnoses, medication, ongoing clinical reviews, therapies received or discharged from...">${h.health||''}</textarea>
@@ -1726,7 +1727,7 @@ function renderStep3(el) {
   const fd = state.formData;
   const areas = fd.areas;
   el.innerHTML = `
-    <div class="step-title">SMART targets</div>
+    <div class="step-title">🎯 SMART targets</div>
     <div class="step-sub">For each development area, choose from the suggested targets or write a custom one. Then edit the wording to be specific to this student.</div>
     <div style="background:#FFF8E7;border:1px solid #E8C84A;border-radius:var(--radius);padding:10px 14px;font-size:13px;color:#7A5C00;margin-bottom:1.25rem">
       ⚠️ <strong>High Quality Teaching reminder:</strong> All targets on an ISP must be <em>additional to and different from</em> quality-first teaching. Do not set targets for things that all students should receive as part of ordinarily available provision. Targets should describe specific, measurable, time-bound steps that go beyond the universal classroom offer.
@@ -1878,7 +1879,7 @@ function renderTargetCards() {
 
 function renderStep4(el) {
   el.innerHTML = `
-    <div class="step-title">Provision and interventions</div>
+    <div class="step-title">🛠️ Provision and interventions</div>
     <div class="step-sub">For each intended outcome, describe the support, who provides it, how often, and the cost.</div>
     <div id="provision-tables"></div>`;
   renderProvisionTables();
@@ -1909,14 +1910,14 @@ function renderProvisionTables() {
 
 function renderStep5(el) {
   el.innerHTML = `
-    <div class="step-title">Pupil and parent / carer voice</div>
+    <div class="step-title">🧒 Pupil and parent / carer voice</div>
     <div class="step-sub">Record the views of the student and their parent or carer. These should be in their own words where possible.</div>
     <div class="voice-card">
-      <div class="voice-label"><span class="voice-dot"></span> Pupil voice</div>
+      <div class="voice-label"><span style="font-size:16px;line-height:1">🧒</span> Pupil voice</div>
       <textarea id="voice-pupil" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:14px;font-family:inherit;min-height:110px;resize:vertical;color:var(--text)" placeholder="What does the student say about their learning, what helps them, what they find hard, what they would like to change...">${state.formData.voices.pupil}</textarea>
     </div>
     <div class="voice-card">
-      <div class="voice-label"><span class="voice-dot" style="background:#378ADD"></span> Parent / carer voice</div>
+      <div class="voice-label"><span style="font-size:16px;line-height:1">👨‍👩‍👦</span> Parent / carer voice</div>
       <textarea id="voice-parent" style="width:100%;border:1px solid var(--border);border-radius:var(--radius);padding:9px 12px;font-size:14px;font-family:inherit;min-height:110px;resize:vertical;color:var(--text)" placeholder="What do parents or carers say about their child's progress, priorities, concerns and what support they feel is needed...">${state.formData.voices.parent}</textarea>
     </div>
     <div class="alert-info">Both voices are a statutory requirement under the SEND Code of Practice 2015. Ensure these have been gathered before finalising the ISP.</div>`;
@@ -1926,7 +1927,7 @@ function renderStep6(el) {
   const o = state.formData.overview;
   const h = state.formData.health;
   el.innerHTML = `
-    <div class="step-title">Review and finalise</div>
+    <div class="step-title">✅ Review and finalise</div>
     <div class="step-sub">Check all sections before creating the ISP. You can go back to make changes.</div>
 
     <div class="summary-panel">
@@ -1961,8 +1962,8 @@ function renderStep6(el) {
 
     <div class="summary-panel">
       <h3>Voices</h3>
-      <div class="summary-row"><span class="summary-key">Pupil voice</span><span class="summary-val" style="font-size:13px">${state.formData.voices.pupil||'<em style="color:var(--subtle)">Not recorded</em>'}</span></div>
-      <div class="summary-row"><span class="summary-key">Parent / carer voice</span><span class="summary-val" style="font-size:13px">${state.formData.voices.parent||'<em style="color:var(--subtle)">Not recorded</em>'}</span></div>
+      <div class="summary-row"><span class="summary-key">🧒 Pupil voice</span><span class="summary-val" style="font-size:13px">${state.formData.voices.pupil||'<em style="color:var(--subtle)">Not recorded</em>'}</span></div>
+      <div class="summary-row"><span class="summary-key">👨‍👩‍👦 Parent / carer voice</span><span class="summary-val" style="font-size:13px">${state.formData.voices.parent||'<em style="color:var(--subtle)">Not recorded</em>'}</span></div>
     </div>
 
     <div class="alert-info">Once you click <strong>Create ISP</strong>, the plan will be saved centrally and a PDF download will be available.</div>
@@ -2252,11 +2253,11 @@ function renderViewScreen(isp, idx) {
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
       <div class="voice-card" style="margin:0">
-        <div class="voice-label"><span class="voice-dot"></span> Pupil voice</div>
+        <div class="voice-label"><span style="font-size:16px;line-height:1">🧒</span> Pupil voice</div>
         <p style="font-size:13px;color:var(--text)">${isp.voices&&isp.voices.pupil||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
       </div>
       <div class="voice-card" style="margin:0">
-        <div class="voice-label"><span class="voice-dot" style="background:#378ADD"></span> Parent / carer voice</div>
+        <div class="voice-label"><span style="font-size:16px;line-height:1">👨‍👩‍👦</span> Parent / carer voice</div>
         <p style="font-size:13px;color:var(--text)">${isp.voices&&isp.voices.parent||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
       </div>
     </div>
@@ -2273,7 +2274,7 @@ function renderViewScreen(isp, idx) {
           ${apdr.map((entry,ei) => `<tr>
             <td style="font-size:13px">${entry.date}</td>
             <td style="font-size:13px">${targets[entry.target]?targets[entry.target].area:'—'}</td>
-            <td><span class="badge ${entry.progress==='good'?'badge-teal':entry.progress==='some'?'badge-blue':'badge-amber'}">${entry.progress==='good'?'Good progress':entry.progress==='some'?'Some progress':'Needs support'}</span></td>
+            <td style="font-size:13px;font-weight:600">${entry.progress==='good'?'✓ Good progress':entry.progress==='some'?'→ Some progress':'⚠ Needs support'}</td>
             <td style="font-size:13px">${entry.schoolComment||'—'}</td>
             <td style="font-size:13px">${entry.parentComment||'—'}</td>
             <td style="font-size:13px">${entry.nextSteps||'—'}</td>
@@ -2495,22 +2496,26 @@ function renderISPPreview(idx) {
     </div>`;
   }).join('');
 
-  // Collect all strategies + seating advice across areas
+  // Collect strategies only (no seating here — seating is in its own box below)
   const strategiesHTML = (isp.areas||[]).map(k => {
     const strat = (isp.strategies&&isp.strategies[k]) || '';
-    const seat  = (isp.seating&&isp.seating[k]) || '';
-    if (!strat && !seat) return '';
+    if (!strat) return '';
     const color = AREA_COLOR[k];
     return `<div style="margin-bottom:10px;padding:10px 14px;border-radius:var(--radius);border-left:3px solid ${color};background:${color}08">
       <div style="font-size:11px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px">${AREA_ICON[k]} ${AREA_LABELS[k]}</div>
-      ${strat ? `<div style="font-size:13px;margin-bottom:4px">${strat}</div>` : ''}
-      ${seat  ? `<div style="font-size:12px;color:var(--muted)">🪑 <strong>Seating:</strong> ${seat}</div>` : ''}
+      <div style="font-size:13px">${strat}</div>
     </div>`;
   }).filter(Boolean).join('');
 
-  // Seating summary across all areas
-  const allSeating = (isp.areas||[]).map(k => (isp.seating&&isp.seating[k])||'').filter(Boolean);
-  const seatingMaster = allSeating.length ? allSeating.join(' · ') : 'No specific seating advice recorded.';
+  // Seating — one line per area that has advice
+  const seatingLines = (isp.areas||[]).map(k => {
+    const seat = (isp.seating&&isp.seating[k]) || '';
+    if (!seat) return '';
+    return `<div style="font-size:13px;margin-bottom:3px"><span style="font-weight:700;color:${AREA_COLOR[k]}">${AREA_ICON[k]} ${AREA_LABELS[k]}:</span> ${seat}</div>`;
+  }).filter(Boolean);
+  const seatingMaster = seatingLines.length
+    ? seatingLines.join('')
+    : '<div style="font-size:13px;color:var(--muted);font-style:italic">No specific seating advice recorded.</div>';
 
   preview.innerHTML = `
     <!-- ══ ONE-PAGE TEACHER SUMMARY ══ -->
@@ -2591,7 +2596,7 @@ function renderISPPreview(idx) {
     <!-- Areas -->
     ${isp.areas&&isp.areas.length ? `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.25rem;overflow:hidden">
-      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">Strengths, needs and barriers to learning</div>
+      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">💡 Strengths, needs and barriers to learning</div>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:var(--bg)">
           <th style="padding:9px 1.25rem;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;text-align:left;border-bottom:1px solid var(--border);width:160px">Area</th>
@@ -2601,7 +2606,7 @@ function renderISPPreview(idx) {
         </tr></thead>
         <tbody>
           ${(isp.areas||[]).map(k=>`<tr style="border-bottom:1px solid var(--border)">
-            <td style="padding:10px 1.25rem;vertical-align:top"><span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;background:${AREA_COLOR[k]||'var(--teal-mid)'}22;color:${AREA_COLOR[k]||'var(--teal)'}">${AREA_LABELS[k]||k}</span></td>
+            <td style="padding:10px 1.25rem;vertical-align:top;font-size:13px;font-weight:600;white-space:nowrap">${AREA_ICON[k]||''} ${AREA_LABELS[k]||k}</td>
             <td style="padding:10px 1.25rem;font-size:13px;vertical-align:top">${(isp.strengths&&isp.strengths[k])||'—'}</td>
             <td style="padding:10px 1.25rem;font-size:13px;vertical-align:top">${(isp.needs&&isp.needs[k])||'—'}</td>
             <td style="padding:10px 1.25rem;font-size:13px;vertical-align:top;color:var(--muted)">${(isp.advice&&isp.advice[k])||'—'}</td>
@@ -2613,7 +2618,7 @@ function renderISPPreview(idx) {
     <!-- Targets & provision -->
     ${targets.length ? `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.25rem;overflow:hidden">
-      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">Targeted support — intended outcomes and provision</div>
+      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">🎯 Targeted support — intended outcomes and provision</div>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:var(--bg)">
           ${['Area','Intended outcome','SMART target','Provision','Provided by / frequency','Cost'].map(h=>`<th style="padding:9px 1rem;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;text-align:left;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
@@ -2622,7 +2627,7 @@ function renderISPPreview(idx) {
           ${targets.map((t,i)=>{
             const p=(isp.provisions&&isp.provisions[i])||{};
             return `<tr style="border-bottom:1px solid var(--border)">
-              <td style="padding:10px 1rem;font-size:13px;font-weight:600;vertical-align:top;white-space:nowrap">${t.area}</td>
+              <td style="padding:10px 1rem;font-size:13px;font-weight:600;vertical-align:top;white-space:nowrap">${AREA_ICON[isp.areas?.find(k=>AREA_LABELS[k]===t.area)||'']||''} ${t.area}</td>
               <td style="padding:10px 1rem;font-size:13px;vertical-align:top">${t.outcome}</td>
               <td style="padding:10px 1rem;font-size:13px;vertical-align:top;color:var(--muted)">${t.smart}</td>
               <td style="padding:10px 1rem;font-size:13px;vertical-align:top">${p.desc||'—'}</td>
@@ -2637,11 +2642,11 @@ function renderISPPreview(idx) {
     <!-- Voices -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:var(--teal-mid);display:inline-block"></span>Pupil voice</div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="font-size:16px;line-height:1">🧒</span>Pupil voice</div>
         <p style="font-size:13px;line-height:1.7;color:var(--text)">${(isp.voices&&isp.voices.pupil)||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
       </div>
       <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem">
-        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:50%;background:#378ADD;display:inline-block"></span>Parent / carer voice</div>
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="font-size:16px;line-height:1">👨‍👩‍👦</span>Parent / carer voice</div>
         <p style="font-size:13px;line-height:1.7;color:var(--text)">${(isp.voices&&isp.voices.parent)||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
       </div>
     </div>
@@ -2649,7 +2654,7 @@ function renderISPPreview(idx) {
     <!-- APDR (if any) -->
     ${apdr.length ? `
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.25rem;overflow:hidden">
-      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">APDR review record</div>
+      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);font-size:14px;font-weight:700">📋 APDR review record</div>
       <table style="width:100%;border-collapse:collapse">
         <thead><tr style="background:var(--bg)">
           ${['Date','Target area','Progress','School comment','Parent/carer comment','Next steps','By/when'].map(h=>`<th style="padding:9px 1rem;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;text-align:left;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
@@ -2658,7 +2663,7 @@ function renderISPPreview(idx) {
           ${apdr.map(e=>`<tr style="border-bottom:1px solid var(--border)">
             <td style="padding:9px 1rem;font-size:13px;white-space:nowrap">${e.date}</td>
             <td style="padding:9px 1rem;font-size:13px">${targets[e.target]?targets[e.target].area:'—'}</td>
-            <td style="padding:9px 1rem"><span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;${e.progress==='good'?'background:var(--teal-light);color:var(--teal-dark)':e.progress==='some'?'background:var(--blue-light);color:var(--navy)':'background:var(--amber-light);color:var(--amber)'}">${e.progress==='good'?'Good progress':e.progress==='some'?'Some progress':'Needs support'}</span></td>
+            <td style="padding:9px 1rem;font-size:13px;font-weight:600">${e.progress==='good'?'✓ Good progress':e.progress==='some'?'→ Some progress':'⚠ Needs support'}</td>
             <td style="padding:9px 1rem;font-size:13px">${e.schoolComment||'—'}</td>
             <td style="padding:9px 1rem;font-size:13px">${e.parentComment||'—'}</td>
             <td style="padding:9px 1rem;font-size:13px">${e.nextSteps||'—'}</td>
@@ -2670,7 +2675,7 @@ function renderISPPreview(idx) {
 
     <!-- Signatures -->
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1.25rem">
-      <div style="font-size:13px;font-weight:700;margin-bottom:1rem;padding-bottom:8px;border-bottom:1px solid var(--border)">Signatures and review</div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:1rem;padding-bottom:8px;border-bottom:1px solid var(--border)">✍️ Signatures and review</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem">
         ${[['SENDCo',o.staff||''],['Parent / carer',''],['Pupil',''],['Next review date','']].map(([label,sub])=>`
           <div style="border:1px solid var(--border);border-radius:var(--radius);padding:1rem">
