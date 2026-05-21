@@ -2314,7 +2314,10 @@ function vsOverview(isp, idx) {
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--border)">
         <div style="padding:1rem 1.5rem;border-right:1px solid var(--border)">
-          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px">Areas of need</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em">Areas of need</div>
+            <button class="btn-secondary" style="font-size:11px;padding:3px 8px" onclick="editViewAreas(${idx})">✏ Edit areas</button>
+          </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px">${areaIconsHTML||'<span style="font-size:13px;color:var(--subtle);font-style:italic">None recorded.</span>'}</div>
         </div>
         <div style="padding:1rem 1.5rem">
@@ -2362,7 +2365,19 @@ function vsHealth(isp, idx) {
 function vsStrengths(isp, idx) {
   const el = document.getElementById('view-sec-strengths');
   if (!el) return;
-  if (!isp.areas || !isp.areas.length) { el.innerHTML = ''; return; }
+  const closedAreas = isp.closedAreas || [];
+  if ((!isp.areas || !isp.areas.length) && !closedAreas.length) { el.innerHTML = ''; return; }
+  const closedRows = closedAreas.map(ca => `
+    <tr style="background:#FAFAFA">
+      <td style="vertical-align:top">
+        <span style="font-size:13px;color:var(--muted);text-decoration:line-through">${ca.label}</span><br>
+        <span style="display:inline-block;margin-top:4px;font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:#F0F0F0;color:#888">Closed</span>
+      </td>
+      <td colspan="3" style="font-size:12px;color:var(--muted);vertical-align:top;line-height:1.6">
+        <em>Closed on ${ca.closedDate||'—'} by ${ca.closedBy||'—'}</em><br>
+        <strong style="color:var(--text)">Rationale:</strong> ${ca.rationale||'—'}
+      </td>
+    </tr>`).join('');
   el.innerHTML = `
     <div class="table-card" style="margin-bottom:1.5rem">
       <div class="table-card-header">
@@ -2378,6 +2393,7 @@ function vsStrengths(isp, idx) {
             <td style="font-size:13px">${(isp.needs&&isp.needs[k])||'—'}</td>
             <td style="font-size:13px;color:var(--muted)">${(isp.advice&&isp.advice[k])||'—'}</td>
           </tr>`).join('')}
+          ${closedRows}
         </tbody>
       </table>
     </div>`;
@@ -2450,16 +2466,25 @@ function vsAPDR(isp, idx) {
       <table>
         <thead><tr><th style="width:90px">Date</th><th style="width:130px">Target</th><th>Progress</th><th>School comment</th><th>Parent/carer comment</th><th>Next steps</th><th>By whom/when</th><th></th></tr></thead>
         <tbody>
-          ${apdr.map((entry,ei) => `<tr>
-            <td style="font-size:13px">${entry.date}</td>
-            <td style="font-size:13px">${targets[entry.target]?targets[entry.target].area:'—'}</td>
-            <td style="font-size:13px;font-weight:600">${entry.progress==='good'?'✓ Good progress':entry.progress==='some'?'→ Some progress':'⚠ Needs support'}</td>
-            <td style="font-size:13px">${entry.schoolComment||'—'}</td>
-            <td style="font-size:13px">${entry.parentComment||'—'}</td>
-            <td style="font-size:13px">${entry.nextSteps||'—'}</td>
-            <td style="font-size:13px">${entry.by||'—'}</td>
-            <td><span class="action-link" style="color:var(--red);font-size:12px" onclick="deleteAPDR(${idx},${ei})">Remove</span></td>
-          </tr>`).join('')}
+          ${apdr.map((entry,ei) => {
+            const isClosure = entry.type === 'area-closure';
+            const targetCell = isClosure
+              ? `<span style="font-size:11px;font-weight:700;padding:2px 7px;border-radius:10px;background:#F0F0F0;color:#888">Area closed</span><br><span style="font-size:12px">${entry.areaKey?AREA_LABELS[entry.areaKey]||entry.areaKey:''}</span>`
+              : (targets[entry.target]?targets[entry.target].area:'—');
+            const progressCell = isClosure
+              ? `<span style="color:#888;font-weight:600">⛔ Closed</span>`
+              : (entry.progress==='good'?'✓ Good progress':entry.progress==='some'?'→ Some progress':'⚠ Needs support');
+            return `<tr${isClosure?' style="background:#FAFAFA"':''}>
+              <td style="font-size:13px">${entry.date}</td>
+              <td style="font-size:13px">${targetCell}</td>
+              <td style="font-size:13px;font-weight:600">${progressCell}</td>
+              <td style="font-size:13px">${entry.schoolComment||'—'}</td>
+              <td style="font-size:13px">${entry.parentComment||'—'}</td>
+              <td style="font-size:13px">${entry.nextSteps||'—'}</td>
+              <td style="font-size:13px">${entry.by||'—'}</td>
+              <td><span class="action-link" style="color:var(--red);font-size:12px" onclick="deleteAPDR(${idx},${ei})">Remove</span></td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>` : `<div style="padding:2rem;text-align:center;color:var(--muted);font-size:14px">No APDR entries yet. Add a review entry to record progress.</div>`}
     </div>
@@ -2493,6 +2518,127 @@ function vsAPDR(isp, idx) {
         </div>
       </div>
     </div>`;
+}
+
+/* ── Areas of need editing ── */
+function editViewAreas(idx) {
+  const isp = state.isps[idx];
+  const el = document.getElementById('view-sec-overview');
+  if (!el) return;
+  const currentAreas = isp.areas || [];
+  const allKeys = Object.keys(AREA_LABELS);
+  const available = allKeys.filter(k => !currentAreas.includes(k));
+
+  el.innerHTML = `
+    <div class="table-card" style="margin-bottom:1.5rem">
+      <div class="table-card-header"><h2>Areas of need — editing</h2></div>
+      <div style="padding:1rem 1.25rem">
+        <div class="alert-info" style="margin-bottom:1.25rem">
+          ℹ️ <strong>Removing an area requires a justification.</strong> This will add a closure note to the Strengths &amp; Needs section and create an automatic APDR entry recording who closed the area, when, and why.
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px">Current areas of need</div>
+        ${currentAreas.length ? currentAreas.map(k => `
+          <div id="area-row-${k}" style="margin-bottom:8px">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius)">
+              <span style="font-size:20px;line-height:1">${AREA_ICON[k]||''}</span>
+              <span style="font-size:13px;font-weight:600;flex:1;color:${AREA_COLOR[k]||'var(--text)'}">${AREA_LABELS[k]||k}</span>
+              <button id="remove-btn-${k}" class="btn-danger" style="font-size:12px" onclick="showAreaRemovalForm('${k}',${idx})">Remove area</button>
+            </div>
+            <div id="removal-form-${k}" style="display:none;margin-top:4px;padding:1rem;background:#FFF8F8;border:1px solid #F7C1C1;border-radius:var(--radius)">
+              <div style="font-size:13px;font-weight:700;color:var(--red);margin-bottom:10px">Removing: ${AREA_LABELS[k]||k}</div>
+              <div class="field">
+                <label>Justification / evidence / rationale <span style="color:var(--red)">*</span></label>
+                <textarea id="removal-rationale-${k}" placeholder="Describe the evidence and reasoning for closing this area of need — e.g. progress made, professional assessment, parental agreement..."></textarea>
+              </div>
+              <div class="row-2">
+                <div class="field"><label>Closed by <span style="color:var(--red)">*</span></label><input type="text" id="removal-by-${k}" placeholder="e.g. Miss A Jones, SENDCo" /></div>
+                <div class="field"><label>Date</label><input type="date" id="removal-date-${k}" value="${new Date().toISOString().split('T')[0]}" /></div>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:0.5rem">
+                <button class="btn-secondary" style="font-size:13px" onclick="hideAreaRemovalForm('${k}')">Cancel</button>
+                <button class="btn-danger" style="font-size:13px" onclick="confirmAreaRemoval('${k}',${idx})">Confirm removal</button>
+              </div>
+            </div>
+          </div>`).join('')
+          : '<p style="font-size:13px;color:var(--subtle);font-style:italic">No areas currently assigned.</p>'}
+
+        ${available.length ? `
+          <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid var(--border)">
+            <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Add an area</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              ${available.map(k=>`<button class="btn-secondary" style="font-size:13px;display:flex;align-items:center;gap:6px" onclick="addAreaOfNeed('${k}',${idx})"><span>${AREA_ICON[k]||''}</span> ${AREA_LABELS[k]||k}</button>`).join('')}
+            </div>
+          </div>` : ''}
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
+          <button class="btn-secondary" style="font-size:13px" onclick="vsOverview(state.isps[${idx}],${idx})">Done</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function showAreaRemovalForm(key, idx) {
+  const form = document.getElementById('removal-form-' + key);
+  const btn  = document.getElementById('remove-btn-' + key);
+  if (form) form.style.display = 'block';
+  if (btn)  btn.style.display  = 'none';
+}
+
+function hideAreaRemovalForm(key) {
+  const form = document.getElementById('removal-form-' + key);
+  const btn  = document.getElementById('remove-btn-' + key);
+  if (form) form.style.display = 'none';
+  if (btn)  btn.style.display  = '';
+}
+
+function confirmAreaRemoval(key, idx) {
+  const rationale  = document.getElementById('removal-rationale-' + key)?.value.trim();
+  const closedBy   = document.getElementById('removal-by-' + key)?.value.trim();
+  const closedDate = document.getElementById('removal-date-' + key)?.value
+                     || new Date().toISOString().split('T')[0];
+  if (!rationale) { alert('Please enter a justification for removing this area.'); return; }
+  if (!closedBy)  { alert('Please enter who is closing this area.'); return; }
+
+  const isp = state.isps[idx];
+  isp.areas = (isp.areas||[]).filter(k => k !== key);
+
+  if (!isp.closedAreas) isp.closedAreas = [];
+  isp.closedAreas.push({ key, label: AREA_LABELS[key]||key, closedBy, closedDate, rationale });
+
+  if (!isp.apdr) isp.apdr = [];
+  const displayDate = new Date(closedDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  isp.apdr.push({
+    date:          displayDate,
+    target:        null,
+    progress:      'achieved',
+    schoolComment: `Area of need closed: ${AREA_LABELS[key]||key}. Rationale: ${rationale}`,
+    parentComment: '',
+    nextSteps:     'Area of need removed from ISP.',
+    by:            closedBy,
+    type:          'area-closure',
+    areaKey:       key,
+  });
+
+  isp.updated    = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  isp.lastEdited = new Date().toISOString();
+  saveISPs();
+
+  editViewAreas(idx);
+  vsStrengths(isp, idx);
+  vsAPDR(isp, idx);
+}
+
+function addAreaOfNeed(key, idx) {
+  const isp = state.isps[idx];
+  if (!isp.areas) isp.areas = [];
+  if (!isp.areas.includes(key)) isp.areas.push(key);
+  isp.closedAreas = (isp.closedAreas||[]).filter(ca => ca.key !== key);
+  isp.updated    = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+  isp.lastEdited = new Date().toISOString();
+  saveISPs();
+  editViewAreas(idx);
+  vsStrengths(isp, idx);
 }
 
 function editViewSection(section, idx) {
