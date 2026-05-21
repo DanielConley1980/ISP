@@ -350,6 +350,7 @@
     border-radius: var(--radius-lg);
     padding: 1rem 1.25rem;
     margin-bottom: 12px;
+    position: relative;
   }
   .target-area-tag {
     display: inline-block; font-size: 11px; font-weight: 700;
@@ -1911,11 +1912,28 @@ Return ONLY a valid JSON array. No markdown, no commentary:
   }
 }
 
+function deleteTarget(idx) {
+  state.formData.targets.forEach((_, i) => {
+    const el = document.getElementById('edit-t-' + i);
+    if (el) state.formData.editedTargets[i] = el.value;
+  });
+  state.formData.targets.splice(idx, 1);
+  const newEdited = {};
+  Object.entries(state.formData.editedTargets).forEach(([k, v]) => {
+    const n = parseInt(k);
+    if (n < idx) newEdited[n] = v;
+    else if (n > idx) newEdited[n - 1] = v;
+  });
+  state.formData.editedTargets = newEdited;
+  renderTargetCards();
+}
+
 function renderTargetCards() {
   const out = document.getElementById('target-output');
   if (!out) return;
   out.innerHTML = state.formData.targets.map((t,i) => `
     <div class="target-card">
+      <button onclick="deleteTarget(${i})" style="position:absolute;top:8px;right:10px;background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;padding:2px 4px" title="Remove this target">×</button>
       <span class="target-area-tag">${t.area}</span>
       <div class="target-outcome" style="margin-bottom:6px">${t.outcome}</div>
       <div class="target-smart-label">SMART target — edit to personalise</div>
