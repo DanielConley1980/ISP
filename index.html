@@ -2211,7 +2211,16 @@ function openPDFWindow(bodyHTML, studentName) {
   win.document.write(`<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="UTF-8"/><title>ISP — ${name}</title>
-<style>body{font-family:Arial,sans-serif;font-size:11px;color:#222;margin:20mm;line-height:1.5}@media print{.no-print{display:none!important}body{margin:10mm}}</style>
+<style>
+  body{font-family:Arial,sans-serif;font-size:11px;color:#222;margin:15mm 18mm;line-height:1.5}
+  table{border-collapse:collapse}
+  @page{size:A4;margin:12mm 15mm}
+  @media print{
+    .no-print{display:none!important}
+    body{margin:0}
+    tr{page-break-inside:avoid}
+  }
+</style>
 </head><body>
 <div class="no-print" style="margin-bottom:16px;display:flex;gap:10px;align-items:center">
   <button onclick="window.print()" style="padding:9px 18px;background:#0F6E56;color:white;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer">Print / Save as PDF</button>
@@ -2237,50 +2246,108 @@ function viewISP(idx) {
 }
 
 function renderViewScreen(isp, idx) {
-  const o  = isp.overview || {};
-  const h  = isp.health   || {};
-  const fd = isp;
-  const targets = (isp.targets||[]);
-  const apdr    = (isp.apdr||[]);
-  const areaLabels = (isp.areas||[]).map(k => AREA_LABELS[k]||k);
+  document.getElementById('view-content').innerHTML = `
+    <div id="view-sec-header"></div>
+    <div id="view-sec-overview"></div>
+    <div id="view-sec-health"></div>
+    <div id="view-sec-strengths"></div>
+    <div id="view-sec-targets"></div>
+    <div id="view-sec-voices"></div>
+    <div id="view-sec-apdr"></div>`;
+  vsHeader(isp, idx);
+  vsOverview(isp, idx);
+  vsHealth(isp, idx);
+  vsStrengths(isp, idx);
+  vsTargets(isp, idx);
+  vsVoices(isp, idx);
+  vsAPDR(isp, idx);
+}
 
-  const summaryHTML = `
+function vsHeader(isp, idx) {
+  const el = document.getElementById('view-sec-header');
+  if (!el) return;
+  el.innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px">
       <div>
         <h1 style="font-size:24px;font-weight:700;margin-bottom:4px">${isp.name}</h1>
         <p style="font-size:14px;color:var(--muted)">Arbor ID: ${isp.arborId} &nbsp;·&nbsp; ${isp.year} ${isp.form} &nbsp;·&nbsp; ${isp.school}</p>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <span class="badge ${isp.level==='Targeted Plus'?'badge-amber':'badge-teal'}" style="font-size:13px;padding:5px 12px">${isp.level}</span>
         <button class="btn-secondary" style="font-size:13px" onclick="downloadExistingPDF(${idx})">⬇ PDF</button>
-        <button class="btn-secondary" style="font-size:13px" onclick="editISP(${idx})">Edit ISP</button>
       </div>
-    </div>
+    </div>`;
+}
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
-      <div class="summary-panel" style="margin:0">
-        <h3>Plan details</h3>
-        <div class="summary-row"><span class="summary-key">Created</span><span class="summary-val">${o.created||'—'}</span></div>
-        <div class="summary-row"><span class="summary-key">Last reviewed</span><span class="summary-val">${o.reviewed||'—'}</span></div>
-        <div class="summary-row"><span class="summary-key">Attendance</span><span class="summary-val">${o.attendance||'—'}%</span></div>
-        <div class="summary-row"><span class="summary-key">Diagnoses</span><span class="summary-val">${o.diagnoses||'—'}</span></div>
-        <div class="summary-row"><span class="summary-key">Responsible staff</span><span class="summary-val">${o.staff||'—'}</span></div>
-        <div class="summary-row"><span class="summary-key">Agencies</span><span class="summary-val">${o.agencies||'—'}</span></div>
-        <div class="summary-row"><span class="summary-key">EHCP</span><span class="summary-val">${h.ehcp||'—'}</span></div>
+function vsOverview(isp, idx) {
+  const el = document.getElementById('view-sec-overview');
+  if (!el) return;
+  const o = isp.overview || {};
+  const h = isp.health || {};
+  const areaLabels = (isp.areas||[]).map(k => AREA_LABELS[k]||k);
+  el.innerHTML = `
+    <div class="table-card" style="margin-bottom:1.5rem">
+      <div class="table-card-header">
+        <h2>Plan overview</h2>
+        <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="editViewSection('overview',${idx})">✏ Edit</button>
       </div>
-      <div class="summary-panel" style="margin:0">
-        <h3>Student summary</h3>
-        <p style="font-size:13px;color:var(--muted);line-height:1.6">${isp.summary||'No summary recorded.'}</p>
-        <div style="margin-top:12px">
-          <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">Development areas</div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px">${areaLabels.map(a=>`<span class="badge badge-blue" style="font-size:11px">${a}</span>`).join('')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem 1.25rem">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Plan details</div>
+          <div class="summary-row"><span class="summary-key">Created</span><span class="summary-val">${o.created||'—'}</span></div>
+          <div class="summary-row"><span class="summary-key">Last reviewed</span><span class="summary-val">${o.reviewed||'—'}</span></div>
+          <div class="summary-row"><span class="summary-key">Attendance</span><span class="summary-val">${o.attendance?o.attendance+'%':'—'}</span></div>
+          <div class="summary-row"><span class="summary-key">Diagnoses</span><span class="summary-val">${o.diagnoses||'—'}</span></div>
+          <div class="summary-row"><span class="summary-key">Responsible staff</span><span class="summary-val">${o.staff||'—'}</span></div>
+          <div class="summary-row"><span class="summary-key">Agencies</span><span class="summary-val">${o.agencies||'—'}</span></div>
+          <div class="summary-row"><span class="summary-key">EHCP</span><span class="summary-val">${h.ehcp||'—'}</span></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Student summary</div>
+          <p style="font-size:13px;color:var(--text);line-height:1.6">${isp.summary||'<em style="color:var(--subtle)">No summary recorded.</em>'}</p>
+          <div style="margin-top:12px">
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">Development areas</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">${areaLabels.map(a=>`<span class="badge badge-blue" style="font-size:11px">${a}</span>`).join('')}</div>
+          </div>
         </div>
       </div>
-    </div>
+    </div>`;
+}
 
-    ${isp.areas&&isp.areas.length ? `
+function vsHealth(isp, idx) {
+  const el = document.getElementById('view-sec-health');
+  if (!el) return;
+  const h = isp.health || {};
+  el.innerHTML = `
     <div class="table-card" style="margin-bottom:1.5rem">
-      <div class="table-card-header"><h2>Strengths, needs and barriers</h2></div>
+      <div class="table-card-header">
+        <h2>Health, care and wellbeing</h2>
+        <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="editViewSection('health',${idx})">✏ Edit</button>
+      </div>
+      <div style="padding:1rem 1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px">Health / wellbeing notes</div>
+          <p style="font-size:13px;line-height:1.6">${h.health||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px">Social care / community services</div>
+          <p style="font-size:13px;line-height:1.6">${h.social||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
+        </div>
+        ${h.links?`<div style="grid-column:span 2"><div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:5px">Relevant document links</div><p style="font-size:13px;line-height:1.6">${h.links}</p></div>`:''}
+      </div>
+    </div>`;
+}
+
+function vsStrengths(isp, idx) {
+  const el = document.getElementById('view-sec-strengths');
+  if (!el) return;
+  if (!isp.areas || !isp.areas.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <div class="table-card" style="margin-bottom:1.5rem">
+      <div class="table-card-header">
+        <h2>Strengths, needs and barriers</h2>
+        <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="editViewSection('strengths',${idx})">✏ Edit</button>
+      </div>
       <table>
         <thead><tr><th style="width:160px">Area</th><th>Strengths</th><th>Needs / barriers</th><th>Specialist advice</th></tr></thead>
         <tbody>
@@ -2292,11 +2359,20 @@ function renderViewScreen(isp, idx) {
           </tr>`).join('')}
         </tbody>
       </table>
-    </div>` : ''}
+    </div>`;
+}
 
-    ${targets.length ? `
+function vsTargets(isp, idx) {
+  const el = document.getElementById('view-sec-targets');
+  if (!el) return;
+  const targets = isp.targets || [];
+  if (!targets.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
     <div class="table-card" style="margin-bottom:1.5rem">
-      <div class="table-card-header"><h2>Targets and provision</h2></div>
+      <div class="table-card-header">
+        <h2>Targets and provision</h2>
+        <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="editViewSection('targets',${idx})">✏ Edit</button>
+      </div>
       <table>
         <thead><tr><th style="width:140px">Area</th><th>Intended outcome</th><th>SMART target</th><th>Provision</th><th>Provided by / frequency</th><th>Cost</th></tr></thead>
         <tbody>
@@ -2313,19 +2389,37 @@ function renderViewScreen(isp, idx) {
           }).join('')}
         </tbody>
       </table>
-    </div>` : ''}
+    </div>`;
+}
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem">
-      <div class="voice-card" style="margin:0">
-        <div class="voice-label"><span style="font-size:16px;line-height:1">🧒</span> Pupil voice</div>
-        <p style="font-size:13px;color:var(--text)">${isp.voices&&isp.voices.pupil||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
+function vsVoices(isp, idx) {
+  const el = document.getElementById('view-sec-voices');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="table-card" style="margin-bottom:1.5rem">
+      <div class="table-card-header">
+        <h2>Pupil and parent / carer voice</h2>
+        <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="editViewSection('voices',${idx})">✏ Edit</button>
       </div>
-      <div class="voice-card" style="margin:0">
-        <div class="voice-label"><span style="font-size:16px;line-height:1">👨‍👩‍👦</span> Parent / carer voice</div>
-        <p style="font-size:13px;color:var(--text)">${isp.voices&&isp.voices.parent||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem 1.25rem">
+        <div class="voice-card" style="margin:0">
+          <div class="voice-label"><span style="font-size:16px;line-height:1">🧒</span> Pupil voice</div>
+          <p style="font-size:13px;color:var(--text)">${isp.voices&&isp.voices.pupil||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
+        </div>
+        <div class="voice-card" style="margin:0">
+          <div class="voice-label"><span style="font-size:16px;line-height:1">👨‍👩‍👦</span> Parent / carer voice</div>
+          <p style="font-size:13px;color:var(--text)">${isp.voices&&isp.voices.parent||'<em style="color:var(--subtle)">Not recorded.</em>'}</p>
+        </div>
       </div>
-    </div>
+    </div>`;
+}
 
+function vsAPDR(isp, idx) {
+  const el = document.getElementById('view-sec-apdr');
+  if (!el) return;
+  const apdr = isp.apdr || [];
+  const targets = isp.targets || [];
+  el.innerHTML = `
     <div class="table-card" style="margin-bottom:1.5rem">
       <div class="table-card-header">
         <h2>APDR review record</h2>
@@ -2348,7 +2442,6 @@ function renderViewScreen(isp, idx) {
         </tbody>
       </table>` : `<div style="padding:2rem;text-align:center;color:var(--muted);font-size:14px">No APDR entries yet. Add a review entry to record progress.</div>`}
     </div>
-
     <div id="apdr-modal" style="display:none">
       <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.5rem;margin-bottom:1.5rem">
         <h2 style="font-size:18px;font-weight:700;margin-bottom:1rem">Add APDR review entry</h2>
@@ -2379,8 +2472,207 @@ function renderViewScreen(isp, idx) {
         </div>
       </div>
     </div>`;
+}
 
-  document.getElementById('view-content').innerHTML = summaryHTML;
+function editViewSection(section, idx) {
+  const isp = state.isps[idx];
+  const o = isp.overview || {};
+  const h = isp.health || {};
+
+  if (section === 'overview') {
+    const el = document.getElementById('view-sec-overview');
+    if (!el) return;
+    const areaLabels = (isp.areas||[]).map(k => AREA_LABELS[k]||k);
+    el.innerHTML = `
+      <div class="table-card" style="margin-bottom:1.5rem">
+        <div class="table-card-header"><h2>Plan overview — editing</h2></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;padding:1rem 1.25rem">
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.75rem">Plan details</div>
+            <div class="field"><label>Last reviewed</label><input type="text" id="ve-reviewed" placeholder="e.g. 14 May 2026" value="${o.reviewed||''}" /></div>
+            <div class="field"><label>Attendance (%)</label><input type="text" id="ve-attendance" placeholder="e.g. 94" value="${o.attendance||''}" /></div>
+            <div class="field"><label>Diagnoses</label><input type="text" id="ve-diagnoses" value="${o.diagnoses||''}" /></div>
+            <div class="field"><label>Responsible staff</label><input type="text" id="ve-staff" value="${o.staff||''}" /></div>
+            <div class="field"><label>External agencies</label><input type="text" id="ve-agencies" value="${o.agencies||''}" /></div>
+            <div class="field"><label>EHCP status</label>
+              <select id="ve-ehcp">
+                <option value="">Select…</option>
+                <option ${h.ehcp==='No EHCP'?'selected':''}>No EHCP</option>
+                <option ${h.ehcp==='EHCP requested'?'selected':''}>EHCP requested</option>
+                <option ${h.ehcp==='EHCP in place'?'selected':''}>EHCP in place</option>
+                <option ${h.ehcp==='EHCP under review'?'selected':''}>EHCP under review</option>
+                <option ${h.ehcp==='EHCP ceased'?'selected':''}>EHCP ceased</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.75rem">Student summary</div>
+            <div class="field"><textarea id="ve-summary" style="min-height:140px">${isp.summary||''}</textarea></div>
+            <div style="margin-top:8px">
+              <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">Development areas</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">${areaLabels.map(a=>`<span class="badge badge-blue" style="font-size:11px">${a}</span>`).join('')}</div>
+              <div class="hint" style="margin-top:6px">To change development areas, use the full ISP wizard.</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 1.25rem 1rem">
+          <button class="btn-secondary" style="font-size:13px" onclick="vsOverview(state.isps[${idx}],${idx})">Cancel</button>
+          <button class="btn-primary" style="font-size:13px" onclick="saveViewSection('overview',${idx})">Save changes</button>
+        </div>
+      </div>`;
+
+  } else if (section === 'health') {
+    const el = document.getElementById('view-sec-health');
+    if (!el) return;
+    el.innerHTML = `
+      <div class="table-card" style="margin-bottom:1.5rem">
+        <div class="table-card-header"><h2>Health, care and wellbeing — editing</h2></div>
+        <div style="padding:1rem 1.25rem">
+          <div class="field"><label>Health / wellbeing notes</label>
+            <textarea id="ve-health" placeholder="Include diagnoses, medication, ongoing clinical reviews, therapies...">${h.health||''}</textarea>
+          </div>
+          <div class="field"><label>Social care / community services</label>
+            <textarea id="ve-social" placeholder="e.g. Child in Need, Direct Payments, Early Help...">${h.social||''}</textarea>
+          </div>
+          <div class="field"><label>Relevant document links</label>
+            <input type="text" id="ve-links" value="${h.links||''}" placeholder="Paste a Google Docs URL or describe the document" />
+            <div class="hint">💡 Paste a Google Docs or Drive URL to link directly to a shared document.</div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:0.5rem">
+            <button class="btn-secondary" style="font-size:13px" onclick="vsHealth(state.isps[${idx}],${idx})">Cancel</button>
+            <button class="btn-primary" style="font-size:13px" onclick="saveViewSection('health',${idx})">Save changes</button>
+          </div>
+        </div>
+      </div>`;
+
+  } else if (section === 'strengths') {
+    const el = document.getElementById('view-sec-strengths');
+    if (!el) return;
+    el.innerHTML = `
+      <div class="table-card" style="margin-bottom:1.5rem">
+        <div class="table-card-header"><h2>Strengths, needs and barriers — editing</h2></div>
+        <div style="padding:1rem 1.25rem">
+          ${(isp.areas||[]).map(k => `
+            <div style="margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
+              <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:0.75rem">${AREA_LABELS[k]||k}</div>
+              <div class="row-3">
+                <div class="field"><label>Strengths</label><textarea id="ve-str-${k}" style="min-height:80px">${(isp.strengths&&isp.strengths[k])||''}</textarea></div>
+                <div class="field"><label>Needs / barriers</label><textarea id="ve-need-${k}" style="min-height:80px">${(isp.needs&&isp.needs[k])||''}</textarea></div>
+                <div class="field"><label>Specialist advice</label><textarea id="ve-adv-${k}" style="min-height:80px">${(isp.advice&&isp.advice[k])||''}</textarea></div>
+              </div>
+            </div>`).join('')}
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn-secondary" style="font-size:13px" onclick="vsStrengths(state.isps[${idx}],${idx})">Cancel</button>
+            <button class="btn-primary" style="font-size:13px" onclick="saveViewSection('strengths',${idx})">Save changes</button>
+          </div>
+        </div>
+      </div>`;
+
+  } else if (section === 'targets') {
+    const el = document.getElementById('view-sec-targets');
+    if (!el) return;
+    const targets = isp.targets || [];
+    el.innerHTML = `
+      <div class="table-card" style="margin-bottom:1.5rem">
+        <div class="table-card-header"><h2>Targets and provision — editing</h2></div>
+        <div style="padding:1rem 1.25rem">
+          ${targets.map((t, i) => {
+            const p = (isp.provisions&&isp.provisions[i])||{};
+            return `
+            <div style="margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
+              <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:0.75rem">${i+1}. ${t.area}</div>
+              <div class="field"><label>Intended outcome</label><textarea id="ve-outcome-${i}" style="min-height:60px">${t.outcome||''}</textarea></div>
+              <div class="field"><label>SMART target</label><textarea id="ve-smart-${i}" style="min-height:90px">${t.smart||''}</textarea></div>
+              <div class="field"><label>Provision / intervention</label><textarea id="ve-pvdesc-${i}" style="min-height:70px">${p.desc||''}</textarea></div>
+              <div class="row-3">
+                <div class="field"><label>Provided by</label><input type="text" id="ve-pvby-${i}" value="${p.by||''}" /></div>
+                <div class="field"><label>Frequency</label><input type="text" id="ve-pvfreq-${i}" value="${p.freq||''}" /></div>
+                <div class="field"><label>Cost</label><input type="text" id="ve-pvcost-${i}" value="${p.cost||''}" /></div>
+              </div>
+            </div>`;
+          }).join('')}
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn-secondary" style="font-size:13px" onclick="vsTargets(state.isps[${idx}],${idx})">Cancel</button>
+            <button class="btn-primary" style="font-size:13px" onclick="saveViewSection('targets',${idx})">Save changes</button>
+          </div>
+        </div>
+      </div>`;
+
+  } else if (section === 'voices') {
+    const el = document.getElementById('view-sec-voices');
+    if (!el) return;
+    const v = isp.voices || {};
+    el.innerHTML = `
+      <div class="table-card" style="margin-bottom:1.5rem">
+        <div class="table-card-header"><h2>Voices — editing</h2></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem 1.25rem">
+          <div class="field">
+            <label><span style="font-size:15px">🧒</span> Pupil voice</label>
+            <textarea id="ve-pupil" style="min-height:100px">${v.pupil||''}</textarea>
+          </div>
+          <div class="field">
+            <label><span style="font-size:15px">👨‍👩‍👦</span> Parent / carer voice</label>
+            <textarea id="ve-parent" style="min-height:100px">${v.parent||''}</textarea>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;padding:0 1.25rem 1rem">
+          <button class="btn-secondary" style="font-size:13px" onclick="vsVoices(state.isps[${idx}],${idx})">Cancel</button>
+          <button class="btn-primary" style="font-size:13px" onclick="saveViewSection('voices',${idx})">Save changes</button>
+        </div>
+      </div>`;
+  }
+}
+
+function saveViewSection(section, idx) {
+  const isp = state.isps[idx];
+  const gv = id => { const e=document.getElementById(id); return e?e.value.trim():''; };
+  const today = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+
+  if (section === 'overview') {
+    if (!isp.overview) isp.overview = {};
+    if (!isp.health) isp.health = {};
+    isp.overview.reviewed   = gv('ve-reviewed');
+    isp.overview.attendance = gv('ve-attendance');
+    isp.overview.diagnoses  = gv('ve-diagnoses');
+    isp.overview.staff      = gv('ve-staff');
+    isp.overview.agencies   = gv('ve-agencies');
+    isp.health.ehcp         = gv('ve-ehcp');
+    isp.summary             = gv('ve-summary');
+  } else if (section === 'health') {
+    if (!isp.health) isp.health = {};
+    isp.health.health = gv('ve-health');
+    isp.health.social = gv('ve-social');
+    isp.health.links  = gv('ve-links');
+  } else if (section === 'strengths') {
+    if (!isp.strengths) isp.strengths = {};
+    if (!isp.needs) isp.needs = {};
+    if (!isp.advice) isp.advice = {};
+    (isp.areas||[]).forEach(k => {
+      isp.strengths[k] = gv('ve-str-'+k);
+      isp.needs[k]     = gv('ve-need-'+k);
+      isp.advice[k]    = gv('ve-adv-'+k);
+    });
+  } else if (section === 'targets') {
+    if (!isp.provisions) isp.provisions = {};
+    (isp.targets||[]).forEach((t, i) => {
+      t.outcome = gv('ve-outcome-'+i);
+      t.smart   = gv('ve-smart-'+i);
+      isp.provisions[i] = {
+        desc: gv('ve-pvdesc-'+i),
+        by:   gv('ve-pvby-'+i),
+        freq: gv('ve-pvfreq-'+i),
+        cost: gv('ve-pvcost-'+i),
+      };
+    });
+  } else if (section === 'voices') {
+    if (!isp.voices) isp.voices = {};
+    isp.voices.pupil   = gv('ve-pupil');
+    isp.voices.parent  = gv('ve-parent');
+  }
+  isp.updated = today;
+  isp.lastEdited = new Date().toISOString();
+  saveISPs();
+  renderViewScreen(isp, idx);
 }
 
 function openAPDRModal(idx) {
@@ -2752,57 +3044,145 @@ function renderISPPreview(idx) {
 }
 
 /* ── PDF generation (existing ISP) ── */
-async function downloadExistingPDF(idx) {
-  const isp = state.isps[idx];
-  const btn = document.querySelector(`[onclick="downloadExistingPDF(${idx})"]`);
-  if (btn) { btn.textContent = 'Generating…'; btn.style.pointerEvents='none'; }
+function downloadExistingPDF(idx) {
+  openPDFWindow(buildISPPDF(state.isps[idx]), state.isps[idx].name);
+}
 
-  const o  = isp.overview || {};
-  const h  = isp.health   || {};
-  const targets = (isp.targets||[]).map((t,i) => ({ ...t, provision: (isp.provisions&&isp.provisions[i])||{} }));
-  const areaRows = (isp.areas||[]).map(k =>
-    `${AREA_LABELS[k]||k}: Strengths: ${(isp.strengths&&isp.strengths[k])||'—'} | Needs: ${(isp.needs&&isp.needs[k])||'—'} | Advice: ${(isp.advice&&isp.advice[k])||'—'}`
-  ).join('\n');
-  const apdrRows = (isp.apdr||[]).map((e,i) =>
-    `Entry ${i+1} (${e.date}): Target ${(e.target||0)+1} | Progress: ${e.progress} | School: ${e.schoolComment} | Parent: ${e.parentComment} | Next steps: ${e.nextSteps} | By: ${e.by}`
-  ).join('\n');
+function buildISPPDF(src) {
+  const CPDF = { executive:'#0F6E56', motor:'#D85A30', sensory:'#7B3FA0', slc:'#378ADD', social:'#D4537E' };
+  const o = src.overview || {};
+  const h = src.health || {};
+  const targets = (src.targets||[]).map((t,i) => ({ ...t, provision: (src.provisions&&src.provisions[i])||{} }));
+  const apdr = src.apdr || [];
 
-  const prompt = `Generate a complete, professionally formatted Individual Support Plan (ISP) as printable HTML. UK school, SEND Code of Practice 2015 format.
+  const riskFlagsHtml = (src.riskFlags||[]).length
+    ? RISK_FLAGS.filter(f=>(src.riskFlags||[]).includes(f.key)).map(f=>
+        `<span style="display:inline-block;margin:2px 3px 2px 0;padding:3px 8px;border-radius:4px;border:1px solid ${f.color};background:${f.color}18;font-size:10px;font-weight:700;color:${f.color}">${f.icon} ${f.label}</span>`
+      ).join('')
+    : '<span style="font-size:10px;color:#999;font-style:italic">None recorded</span>';
 
-STUDENT: ${isp.name} | Arbor ID: ${isp.arborId} | ${isp.year} ${isp.form} | DOB: ${isp.dob||'—'} | School: ${isp.school||'—'} | Gender: ${isp.gender||'—'}
-PLAN LEVEL: ${isp.level} | Created: ${o.created||'—'} | Reviewed: ${o.reviewed||'—'} | Attendance: ${o.attendance||'—'}% | EHCP: ${h.ehcp||'—'}
-DIAGNOSES: ${o.diagnoses||'—'} | STAFF: ${o.staff||'—'} | AGENCIES: ${o.agencies||'—'}
-HEALTH: ${h.health||'—'} | SOCIAL CARE: ${h.social||'—'} | LINKS: ${h.links||'—'}
+  const areaChipsHtml = (src.areas||[]).map(k => {
+    const c = CPDF[k]||'#555';
+    return `<span style="display:inline-block;margin:2px 4px 2px 0;padding:4px 10px;border-radius:4px;border:1px solid ${c}55;background:${c}12;font-size:10px;font-weight:700;color:${c}">${AREA_ICON[k]||''} ${AREA_LABELS[k]||k}</span>`;
+  }).join('');
 
-STUDENT SUMMARY: ${isp.summary||'—'}
+  const strategiesHtml = (src.areas||[]).map(k => {
+    const strat = (src.strategies&&src.strategies[k])||''; if (!strat) return '';
+    const c = CPDF[k]||'#555';
+    return `<div style="margin-bottom:8px;padding:7px 10px;border-left:3px solid ${c};background:${c}08"><div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:${c};margin-bottom:3px">${AREA_ICON[k]||''} ${AREA_LABELS[k]||k}</div><div style="font-size:11px">${strat}</div></div>`;
+  }).filter(Boolean).join('') || '<p style="font-size:11px;color:#999;font-style:italic">No strategies recorded.</p>';
 
-STRENGTHS AND NEEDS:
-${areaRows||'—'}
+  const seatingHtml = (src.areas||[]).map(k => {
+    const seat = (src.seating&&src.seating[k])||''; if (!seat) return '';
+    const c = CPDF[k]||'#555';
+    return `<div style="font-size:11px;margin-bottom:3px"><strong style="color:${c}">${AREA_ICON[k]||''} ${AREA_LABELS[k]||k}:</strong> ${seat}</div>`;
+  }).filter(Boolean).join('') || '<p style="font-size:11px;color:#999;font-style:italic">No specific seating advice recorded.</p>';
 
-TARGETS AND PROVISION:
-${targets.map((t,i)=>`${i+1}. Area: ${t.area} | Outcome: ${t.outcome} | SMART: ${t.smart} | Provision: ${t.provision.desc||'—'} | By: ${t.provision.by||'—'} | Frequency: ${t.provision.freq||'—'} | Cost: ${t.provision.cost||'—'}`).join('\n')||'—'}
+  const th = (txt, w) => `<th style="padding:6px 8px;background:#0F6E56;color:white;text-align:left;font-size:11px;border:1px solid #0a5040${w?';width:'+w:''}">${txt}</th>`;
+  const td = (txt, extra) => `<td style="padding:5px 8px;border:1px solid #ccc;vertical-align:top;font-size:11px${extra?';'+extra:''}">${txt}</td>`;
 
-PUPIL VOICE: ${(isp.voices&&isp.voices.pupil)||'—'}
-PARENT/CARER VOICE: ${(isp.voices&&isp.voices.parent)||'—'}
+  return `
+    <!-- PAGE 1: TEACHER SUMMARY — no page break inside -->
+    <div style="page-break-after:always;page-break-inside:avoid">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+        <tr style="background:#0F6E56">
+          <td style="padding:12px 16px;color:white">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:0.06em;opacity:0.8;margin-bottom:3px">${src.school||'School'} — Teacher Summary — Confidential</div>
+            <div style="font-size:20px;font-weight:800;margin-bottom:2px">${src.name}</div>
+            <div style="font-size:11px;opacity:0.85">Arbor ${src.arborId} &nbsp;·&nbsp; ${src.year} ${src.form} &nbsp;·&nbsp; DOB: ${src.dob||'—'} &nbsp;·&nbsp; ${src.gender||'—'}</div>
+          </td>
+          <td style="padding:12px 16px;color:white;text-align:right;vertical-align:top;white-space:nowrap">
+            <div style="display:inline-block;padding:4px 12px;border-radius:20px;${src.level==='Targeted Plus'?'background:#FAEEDA;color:#854F0B':'background:white;color:#0F6E56'};font-size:11px;font-weight:700;margin-bottom:6px">${src.level}</div>
+            <div style="font-size:11px">Staff: ${o.staff||'—'}</div>
+            <div style="font-size:11px">Attendance: ${o.attendance||'—'}%</div>
+          </td>
+        </tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+        <tr>
+          <td style="width:50%;vertical-align:top;padding-right:12px">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#666;margin-bottom:6px">Areas of need</div>
+            ${areaChipsHtml||'<span style="font-size:11px;color:#999">None recorded</span>'}
+          </td>
+          <td style="width:50%;vertical-align:top;padding-left:12px;border-left:1px solid #e5e5e5">
+            <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#666;margin-bottom:6px">Risk / alert flags</div>
+            ${riskFlagsHtml}
+          </td>
+        </tr>
+      </table>
+      <div style="background:#EAF6F0;border:1px solid #8DCFB0;border-radius:4px;padding:8px 12px;margin-bottom:12px">
+        <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#0F6E56;margin-bottom:5px">🪑 Seating plan advice</div>
+        ${seatingHtml}
+      </div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#666;margin-bottom:6px">Key support strategies for all staff</div>
+      ${strategiesHtml}
+      ${src.summary?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid #e5e5e5;font-size:11px;color:#444;line-height:1.5"><strong>Student summary:</strong> ${src.summary}</div>`:''}
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid #e5e5e5;display:flex;justify-content:space-between;font-size:9px;color:#999">
+        <span>ISP created: ${o.created||'—'} · Last reviewed: ${o.reviewed||'—'}</span>
+        <span>Confidential — for authorised staff only · Do not leave unattended</span>
+      </div>
+    </div>
 
-APDR REVIEW RECORD:
-${apdrRows||'No review entries recorded.'}
+    <!-- PAGES 2+: FULL ISP -->
+    <h1 style="color:#0F6E56;font-size:18px;margin:0 0 4px">Individual Support Plan</h1>
+    <p style="color:#666;font-size:11px;margin:0 0 16px">${src.school||'School'} &nbsp;·&nbsp; ${src.name} &nbsp;·&nbsp; Arbor ID: ${src.arborId}</p>
 
-Generate a complete professional ISP HTML document body (no DOCTYPE/html/head/body tags). Inline styles only. Use #0F6E56 teal for heading rows. Include: header with school name and ISP title; pupil details table; strengths and needs table with one row per area; health section; targeted support table (Area, Outcome, SMART target, Provision, By/Frequency, Cost); voices section; APDR record table if entries exist; signatures/review box. Include a print button at the top. Return ONLY the HTML, no markdown.`;
+    <div style="page-break-inside:avoid">
+      <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+        <tr>${th('Pupil details','')}<th colspan="3" style="padding:6px 8px;background:#0F6E56;color:white;border:1px solid #0a5040"></th></tr>
+        <tr>${td('<strong>Name</strong>','width:20%')}${td(src.name)}${td('<strong>Arbor ID</strong>','width:18%')}${td(src.arborId)}</tr>
+        <tr>${td('<strong>Date of birth</strong>')}${td(src.dob||'—')}${td('<strong>Year / form</strong>')}${td((src.year||'—')+' '+(src.form||''))}</tr>
+        <tr>${td('<strong>School</strong>')}${td(src.school||'—')}${td('<strong>Gender</strong>')}${td(src.gender||'—')}</tr>
+        <tr>${td('<strong>Diagnoses</strong>')}<td colspan="3" style="padding:5px 8px;border:1px solid #ccc;font-size:11px">${o.diagnoses||'—'}</td></tr>
+        <tr>${td('<strong>Level of plan</strong>')}${td('<strong>'+(src.level||'Targeted')+'</strong>')}${td('<strong>Attendance</strong>')}${td((o.attendance||'—')+'%')}</tr>
+        <tr>${td('<strong>Responsible staff</strong>')}${td(o.staff||'—')}${td('<strong>EHCP</strong>')}${td(h.ehcp||'—')}</tr>
+        <tr>${td('<strong>Agencies</strong>')}<td colspan="3" style="padding:5px 8px;border:1px solid #ccc;font-size:11px">${o.agencies||'—'}</td></tr>
+        <tr>${td('<strong>Created</strong>')}${td(o.created||'—')}${td('<strong>Last reviewed</strong>')}${td(o.reviewed||'—')}</tr>
+      </table>
+    </div>
 
-  try {
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type':'application/json', 'x-api-key':API_KEY, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:4000, messages:[{role:'user',content:prompt}] })
-    });
-    const data = await resp.json();
-    let html = (data.content?.find(b=>b.type==='text')?.text||'').replace(/```html|```/g,'').trim();
-    openPDFWindow(html, isp.name);
-  } catch(e) {
-    openPDFWindow(buildFallbackHTML(isp), isp.name);
-  }
-  if (btn) { btn.textContent = btn.classList.contains('btn-secondary') ? '⬇ PDF' : 'PDF'; btn.style.pointerEvents=''; }
+    ${src.summary?`<div style="page-break-inside:avoid"><table style="width:100%;border-collapse:collapse;margin-bottom:14px"><tr>${th('Student summary','')}</tr><tr><td style="padding:8px;border:1px solid #ccc;font-size:11px;line-height:1.5">${src.summary}</td></tr></table></div>`:''}
+
+    ${src.areas&&src.areas.length?`<div style="page-break-inside:avoid"><table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr>${th('Area','160px')}${th('Strengths','')}${th('Needs / barriers','')}${th('Specialist advice','')}</tr>
+      ${src.areas.map(k=>`<tr>${td('<strong>'+( AREA_LABELS[k]||k)+'</strong>')}${td((src.strengths&&src.strengths[k])||'—')}${td((src.needs&&src.needs[k])||'—')}${td((src.advice&&src.advice[k])||'—','color:#555')}</tr>`).join('')}
+    </table></div>`:''}
+
+    ${(h.health||h.social)?`<div style="page-break-inside:avoid"><table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr>${th('Health, care and wellbeing','')}<th style="padding:6px 8px;background:#0F6E56;border:1px solid #0a5040"></th></tr>
+      <tr>${td('<strong>Health / wellbeing notes</strong><br><br>'+(h.health||'—'),'width:50%')}${td('<strong>Social care / community services</strong><br><br>'+(h.social||'—'))}</tr>
+      ${h.links?`<tr><td colspan="2" style="padding:5px 8px;border:1px solid #ccc;font-size:11px"><strong>Document links:</strong> ${h.links}</td></tr>`:''}
+    </table></div>`:''}
+
+    ${targets.length?`<table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr>${th('Area','120px')}${th('Intended outcome','')}${th('SMART target','')}${th('Provision','')}${th('By / frequency','')}${th('Cost','70px')}</tr>
+      ${targets.map(t=>`<tr style="page-break-inside:avoid">${td('<strong>'+t.area+'</strong>')}${td(t.outcome||'—')}${td(t.smart||'—')}${td(t.provision.desc||'—')}${td((t.provision.by||'—')+(t.provision.freq?'<br>'+t.provision.freq:''))}${td(t.provision.cost||'—')}</tr>`).join('')}
+    </table>`:''}
+
+    <div style="page-break-inside:avoid"><table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr>${th('Voices','')}<th style="padding:6px 8px;background:#0F6E56;border:1px solid #0a5040"></th></tr>
+      <tr>${td('<strong>🧒 Pupil voice</strong><br><br>'+((src.voices&&src.voices.pupil)||'Not recorded.'),'width:50%')}${td('<strong>👨‍👩‍👦 Parent / carer voice</strong><br><br>'+((src.voices&&src.voices.parent)||'Not recorded.'))}</tr>
+    </table></div>
+
+    ${apdr.length?`<table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr>${['Date','Area','Progress','School comment','Parent/carer','Next steps','By/when'].map(t=>th(t,'')).join('')}</tr>
+      ${apdr.map(e=>`<tr style="page-break-inside:avoid">
+        ${td(e.date)}
+        ${td((src.targets&&src.targets[e.target])?src.targets[e.target].area:'—')}
+        ${td(e.progress==='good'?'Good progress':e.progress==='some'?'Some progress':'Needs support')}
+        ${td(e.schoolComment||'—')}${td(e.parentComment||'—')}${td(e.nextSteps||'—')}${td(e.by||'—')}
+      </tr>`).join('')}
+    </table>`:''}
+
+    <div style="page-break-inside:avoid"><table style="width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr>${th('Signatures and review','')}<th colspan="3" style="padding:6px 8px;background:#0F6E56;border:1px solid #0a5040"></th></tr>
+      <tr>
+        ${td('SENDCo signature<br><br><br>_____________________<br><small style="color:#666">'+(o.staff||'')+'</small>')}
+        ${td('Parent / carer signature<br><br><br>_____________________')}
+        ${td('Pupil signature<br><br><br>_____________________')}
+        ${td('Next review date<br><br><br>_____________________')}
+      </tr>
+    </table></div>`;
 }
 </script>
 </body>
