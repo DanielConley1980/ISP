@@ -1373,7 +1373,7 @@ function goToISPForm() {
     strategies:    {},
     seating:       {},
     riskFlags:     [],
-    health:        { social: prefill.socialCare ? `Social care involvement: ${prefill.socialCare}` : '' },
+    health:        { social: prefill.socialCare ? `Social care involvement: ${prefill.socialCare}` : '', pdfFiles: [] },
     targets:       [],
     editedTargets: {},
     provisions:    {},
@@ -1464,10 +1464,11 @@ function saveCurrentStep() {
     state.formData.riskFlags = Array.from(document.querySelectorAll('.risk-chip.selected')).map(c=>c.dataset.flag);
   } else if (s === 2) {
     state.formData.health = {
-      health: gv('s2-health'),
-      social: gv('s2-social'),
-      ehcp:   gv('s2-ehcp'),
-      links:  gv('s2-links'),
+      health:    gv('s2-health'),
+      social:    gv('s2-social'),
+      ehcp:      gv('s2-ehcp'),
+      links:     gv('s2-links'),
+      pdfFiles:  state.formData.health.pdfFiles || [],
     };
   } else if (s === 3) {
     // Save from selector UI if targets not yet set via AI
@@ -1695,6 +1696,40 @@ function renderAreaPanels() {
   }).join('');
 }
 
+function handlePdfUpload(input) {
+  const files = Array.from(input.files).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
+  if (!files.length) return;
+  if (!state.formData.health.pdfFiles) state.formData.health.pdfFiles = [];
+  files.forEach(f => {
+    state.formData.health.pdfFiles.push({ name: f.name, url: URL.createObjectURL(f) });
+  });
+  renderPdfList();
+  input.value = '';
+}
+
+function removePdf(idx) {
+  const files = state.formData.health.pdfFiles || [];
+  if (files[idx]) URL.revokeObjectURL(files[idx].url);
+  files.splice(idx, 1);
+  renderPdfList();
+}
+
+function renderPdfList() {
+  const el = document.getElementById('pdf-list');
+  if (!el) return;
+  const files = state.formData.health.pdfFiles || [];
+  if (!files.length) {
+    el.innerHTML = '<span style="font-size:12px;color:var(--subtle)">No PDFs uploaded yet.</span>';
+    return;
+  }
+  el.innerHTML = files.map((f, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);font-size:13px">
+      <span>📄</span>
+      <a href="${f.url}" target="_blank" style="color:var(--teal);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${f.name}">${f.name}</a>
+      <button onclick="removePdf(${i})" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:0 2px" title="Remove">×</button>
+    </div>`).join('');
+}
+
 function renderStep2(el) {
   const h = state.formData.health;
   el.innerHTML = `
@@ -1719,8 +1754,19 @@ function renderStep2(el) {
       </div>
       <div class="field"><label>Relevant document links <span style="font-weight:400;color:var(--subtle)">(optional)</span></label>
         <input type="text" id="s2-links" placeholder="e.g. EHCP, CAMHS report, OT report, social care plan" value="${h.links||''}" />
+        <div class="hint">💡 Paste a Google Docs or Google Drive URL here to link directly to a shared document (e.g. EHCP, CAMHS referral, social care plan).</div>
       </div>
+    </div>
+    <div class="field" style="margin-top:0.25rem">
+      <label>Upload PDF documents <span style="font-weight:400;color:var(--subtle)">(optional)</span></label>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <input type="file" id="pdf-upload-input" accept=".pdf,application/pdf" multiple style="display:none" onchange="handlePdfUpload(this)">
+        <button class="btn-secondary" style="font-size:13px" onclick="document.getElementById('pdf-upload-input').click()">📎 Upload PDF</button>
+        <span style="font-size:12px;color:var(--subtle)">Attach one or more PDF files (e.g. assessment reports, EHCP copy)</span>
+      </div>
+      <div id="pdf-list" style="display:flex;flex-direction:column;gap:6px"></div>
     </div>`;
+  renderPdfList();
 }
 
 function renderStep3(el) {
