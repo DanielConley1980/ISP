@@ -2267,15 +2267,8 @@ function vsHeader(isp, idx) {
   const el = document.getElementById('view-sec-header');
   if (!el) return;
   el.innerHTML = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:12px">
-      <div>
-        <h1 style="font-size:24px;font-weight:700;margin-bottom:4px">${isp.name}</h1>
-        <p style="font-size:14px;color:var(--muted)">Arbor ID: ${isp.arborId} &nbsp;·&nbsp; ${isp.year} ${isp.form} &nbsp;·&nbsp; ${isp.school}</p>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <span class="badge ${isp.level==='Targeted Plus'?'badge-amber':'badge-teal'}" style="font-size:13px;padding:5px 12px">${isp.level}</span>
-        <button class="btn-secondary" style="font-size:13px" onclick="downloadExistingPDF(${idx})">⬇ PDF</button>
-      </div>
+    <div style="display:flex;justify-content:flex-end;margin-bottom:0.75rem;gap:8px">
+      <button class="btn-secondary" style="font-size:13px" onclick="downloadExistingPDF(${idx})">⬇ PDF</button>
     </div>`;
 }
 
@@ -2284,32 +2277,60 @@ function vsOverview(isp, idx) {
   if (!el) return;
   const o = isp.overview || {};
   const h = isp.health || {};
-  const areaLabels = (isp.areas||[]).map(k => AREA_LABELS[k]||k);
+
+  const areaIconsHTML = (isp.areas||[]).map(k => {
+    const color = AREA_COLOR[k] || 'var(--teal)';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 14px;border-radius:var(--radius);background:${color}14;border:1.5px solid ${color}50;min-width:84px">
+      <span style="font-size:24px;line-height:1">${AREA_ICON[k]||'●'}</span>
+      <span style="font-size:11px;font-weight:700;color:${color};text-align:center;line-height:1.3">${AREA_LABELS[k]}</span>
+    </div>`;
+  }).join('');
+
+  const riskFlagHTML = (isp.riskFlags||[]).length
+    ? RISK_FLAGS.filter(f=>(isp.riskFlags||[]).includes(f.key)).map(f =>
+        `<div style="display:flex;align-items:center;gap:8px;padding:7px 11px;border-radius:var(--radius);border:1.5px solid ${f.color};background:${f.color}12;margin-bottom:5px">
+          <span style="font-size:16px;line-height:1">${f.icon}</span>
+          <span style="font-size:12px;font-weight:700;color:${f.color}">${f.label}</span>
+        </div>`).join('')
+    : '<span style="font-size:13px;color:var(--subtle);font-style:italic">No risk flags recorded.</span>';
+
   el.innerHTML = `
-    <div class="table-card" style="margin-bottom:1.5rem">
-      <div class="table-card-header">
-        <h2>Plan overview</h2>
-        <button class="btn-secondary" style="font-size:12px;padding:5px 12px" onclick="editViewSection('overview',${idx})">✏ Edit</button>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:1.5rem;overflow:hidden">
+      <div style="height:4px;background:linear-gradient(90deg,#0F6E56,#1D9E75,#378ADD,#D4537E,#D85A30)"></div>
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;padding:1.25rem 1.5rem 1rem;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">${isp.school||'—'} &nbsp;·&nbsp; Individual Support Plan</div>
+          <div style="font-size:26px;font-weight:800;margin-bottom:4px;letter-spacing:-0.5px">${isp.name}</div>
+          <div style="font-size:13px;color:var(--muted)">Arbor <strong>${isp.arborId}</strong> &nbsp;·&nbsp; ${isp.year} ${isp.form} &nbsp;·&nbsp; DOB: ${isp.dob||'—'} &nbsp;·&nbsp; ${isp.gender||'—'}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+          <span class="badge ${isp.level==='Targeted Plus'?'badge-amber':'badge-teal'}" style="font-size:13px;padding:5px 14px">${isp.level}</span>
+          <span style="font-size:12px;color:var(--muted)">Staff: ${o.staff||'—'}</span>
+          <span style="font-size:12px;color:var(--muted)">Attendance: ${o.attendance?o.attendance+'%':'—'}</span>
+          <button class="btn-secondary" style="font-size:12px;padding:4px 10px;margin-top:4px" onclick="editViewSection('overview',${idx})">✏ Edit</button>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;padding:1rem 1.25rem">
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Plan details</div>
-          <div class="summary-row"><span class="summary-key">Created</span><span class="summary-val">${o.created||'—'}</span></div>
-          <div class="summary-row"><span class="summary-key">Last reviewed</span><span class="summary-val">${o.reviewed||'—'}</span></div>
-          <div class="summary-row"><span class="summary-key">Attendance</span><span class="summary-val">${o.attendance?o.attendance+'%':'—'}</span></div>
-          <div class="summary-row"><span class="summary-key">Diagnoses</span><span class="summary-val">${o.diagnoses||'—'}</span></div>
-          <div class="summary-row"><span class="summary-key">Responsible staff</span><span class="summary-val">${o.staff||'—'}</span></div>
-          <div class="summary-row"><span class="summary-key">Agencies</span><span class="summary-val">${o.agencies||'—'}</span></div>
-          <div class="summary-row"><span class="summary-key">EHCP</span><span class="summary-val">${h.ehcp||'—'}</span></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid var(--border)">
+        <div style="padding:1rem 1.5rem;border-right:1px solid var(--border)">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px">Areas of need</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">${areaIconsHTML||'<span style="font-size:13px;color:var(--subtle);font-style:italic">None recorded.</span>'}</div>
         </div>
-        <div>
-          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Student summary</div>
-          <p style="font-size:13px;color:var(--text);line-height:1.6">${isp.summary||'<em style="color:var(--subtle)">No summary recorded.</em>'}</p>
-          <div style="margin-top:12px">
-            <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">Development areas</div>
-            <div style="display:flex;flex-wrap:wrap;gap:6px">${areaLabels.map(a=>`<span class="badge badge-blue" style="font-size:11px">${a}</span>`).join('')}</div>
-          </div>
+        <div style="padding:1rem 1.5rem">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:10px">Risk / alert flags</div>
+          ${riskFlagHTML}
         </div>
+      </div>
+
+      <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">Student summary</div>
+        <p style="font-size:13px;color:var(--text);line-height:1.7;margin:0">${isp.summary||'<em style="color:var(--subtle)">No summary recorded.</em>'}</p>
+      </div>
+
+      <div style="padding:1rem 1.5rem;display:flex;flex-wrap:wrap;gap:1.5rem">
+        ${[['Created',o.created||'—'],['Last reviewed',o.reviewed||'—'],['EHCP',h.ehcp||'—'],['Diagnoses',o.diagnoses||'—'],['Agencies',o.agencies||'—']].map(([k,v])=>`
+          <div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">${k}</div><div style="font-size:13px;font-weight:600">${v}</div></div>`).join('')}
       </div>
     </div>`;
 }
@@ -3063,7 +3084,10 @@ function buildISPPDF(src) {
 
   const areaChipsHtml = (src.areas||[]).map(k => {
     const c = CPDF[k]||'#555';
-    return `<span style="display:inline-block;margin:2px 4px 2px 0;padding:4px 10px;border-radius:4px;border:1px solid ${c}55;background:${c}12;font-size:10px;font-weight:700;color:${c}">${AREA_ICON[k]||''} ${AREA_LABELS[k]||k}</span>`;
+    return `<div style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;border-radius:5px;border:1.5px solid ${c}55;background:${c}12;margin:0 5px 5px 0;min-width:72px;text-align:center;vertical-align:top">
+      <span style="font-size:20px;line-height:1">${AREA_ICON[k]||'●'}</span>
+      <span style="font-size:9px;font-weight:700;color:${c};line-height:1.2">${AREA_LABELS[k]||k}</span>
+    </div>`;
   }).join('');
 
   const strategiesHtml = (src.areas||[]).map(k => {
@@ -3140,6 +3164,11 @@ function buildISPPDF(src) {
         <tr>${td('<strong>Created</strong>')}${td(o.created||'—')}${td('<strong>Last reviewed</strong>')}${td(o.reviewed||'—')}</tr>
       </table>
     </div>
+
+    ${src.areas&&src.areas.length?`<div style="page-break-inside:avoid;margin-bottom:14px">
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#666;margin-bottom:6px">Areas of need</div>
+      <div>${(src.areas||[]).map(k=>{const c=CPDF[k]||'#555';return`<div style="display:inline-flex;flex-direction:column;align-items:center;gap:3px;padding:7px 11px;border-radius:4px;border:1.5px solid ${c}55;background:${c}10;margin:0 5px 5px 0;min-width:68px;text-align:center;vertical-align:top"><span style="font-size:18px;line-height:1">${AREA_ICON[k]||'●'}</span><span style="font-size:9px;font-weight:700;color:${c};line-height:1.2">${AREA_LABELS[k]||k}</span></div>`;}).join('')}</div>
+    </div>`:''}
 
     ${src.summary?`<div style="page-break-inside:avoid"><table style="width:100%;border-collapse:collapse;margin-bottom:14px"><tr>${th('Student summary','')}</tr><tr><td style="padding:8px;border:1px solid #ccc;font-size:11px;line-height:1.5">${src.summary}</td></tr></table></div>`:''}
 
