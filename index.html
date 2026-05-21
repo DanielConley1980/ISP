@@ -687,6 +687,7 @@
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn-primary" id="pdf-btn" onclick="generatePDF()">⬇ Download PDF</button>
+          <button class="btn-secondary" onclick="viewISP(state.previewIdx)">✏ Edit sections</button>
           <button class="btn-secondary" onclick="showScreen('screen-dashboard');renderDashboard()">← Back to dashboard</button>
           <button class="btn-secondary" onclick="showScreen('screen-arbor');resetForm()">+ New ISP</button>
         </div>
@@ -1294,8 +1295,7 @@ function deleteISP(idx) {
 
 function openISPPreview(idx) {
   state.previewIdx = idx;
-  renderISPPreview(idx);
-  showScreen('screen-complete');
+  viewISP(idx);
 }
 
 /* ── Arbor student database (from Graduated Approach Sheet) ── */
