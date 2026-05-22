@@ -597,6 +597,26 @@
   .gr-card-stats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
   .gr-card-chip { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-weight: 600; }
   .gr-card-chip.open { background: #fff3e0; border-color: #e67e22; color: #b7510c; }
+  .gr-tier-filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 1rem; }
+  .gr-tier-filter-btn {
+    padding: 7px 16px; border-radius: 20px; border: 2px solid transparent;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: opacity 0.15s, transform 0.1s;
+  }
+  .gr-tier-filter-btn:hover { opacity: 0.85; }
+  .gr-tier-filter-btn.active { outline: 3px solid rgba(0,0,0,0.18); outline-offset: 1px; }
+  .gr-tier-filter-btn.all-btn { background: var(--surface); border-color: var(--border); color: var(--text); }
+  .gr-tier-filter-btn.all-btn.active { border-color: var(--teal); color: var(--teal); }
+  /* GR pills in ISP summary */
+  .gr-isp-section { padding: 1rem 1.5rem; border-top: 1px solid var(--border); }
+  .gr-isp-tier-row { margin-bottom: 10px; }
+  .gr-isp-tier-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .gr-isp-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+  .gr-isp-pill {
+    font-size: 11px; padding: 3px 10px; border-radius: 12px;
+    font-weight: 600; border: 1.5px solid transparent; line-height: 1.5;
+  }
+  .gr-isp-pill.open { /* solid: open intervention */ }
+  .gr-isp-pill.closed { opacity: 0.65; background: white !important; }
 </style>
 </head>
 <body>
@@ -2893,6 +2913,7 @@ function vsOverview(isp, idx) {
         ${[['Created',o.created||'—'],['Last reviewed',o.reviewed||'—'],['EHCP',h.ehcp||'—'],['Diagnoses',o.diagnoses||'—'],['Agencies',o.agencies||'—']].map(([k,v])=>`
           <div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">${k}</div><div style="font-size:13px;font-weight:600">${v}</div></div>`).join('')}
       </div>
+      ${buildGRSummaryHtml(isp.arborId)}
     </div>`;
 }
 
@@ -3920,6 +3941,22 @@ function renderGRScreen() {
       <div class="gr-card-stats">${totalChip}${openChip}</div>`;
   };
 
+  // Tier counts for filter buttons
+  const tierCounts = {};
+  GRAD_TIERS.forEach(t => { tierCounts[t.id] = 0; });
+  let noneCount = 0;
+  students.forEach(s => {
+    const t = getStudentHighestTier(s.arborId);
+    if (t === -1) noneCount++;
+    else tierCounts[GRAD_TIERS[t].id] = (tierCounts[GRAD_TIERS[t].id] || 0) + 1;
+  });
+
+  const tierFilterBtns = [
+    `<button class="gr-tier-filter-btn all-btn active" data-tier="all" onclick="filterGRByTier('all')">All (${students.length})</button>`,
+    ...GRAD_TIERS.map(tier => `<button class="gr-tier-filter-btn" data-tier="${tier.id}" style="background:${tier.bg};color:${tier.color};border-color:${tier.color}60" onclick="filterGRByTier('${tier.id}')">${tier.label} (${tierCounts[tier.id] || 0})</button>`),
+    noneCount > 0 ? `<button class="gr-tier-filter-btn all-btn" data-tier="none" onclick="filterGRByTier('none')">No interventions (${noneCount})</button>` : ''
+  ].join('');
+
   content.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
       <div>
@@ -3927,6 +3964,7 @@ function renderGRScreen() {
         <p style="font-size:14px;color:var(--muted)">${students.length} students · track interventions across 4 tiers</p>
       </div>
     </div>
+    <div class="gr-tier-filters">${tierFilterBtns}</div>
     <div class="gr-search-bar" style="margin-bottom:1rem">
       <input type="text" id="gr-search-input" placeholder="Search students…" oninput="filterGRCards()" />
     </div>
@@ -3940,14 +3978,73 @@ function renderGRScreen() {
     </div>
     ${!students.length ? '<div style="padding:3rem;text-align:center;color:var(--muted);font-size:14px">No students found. Connect a sheet to load student data.</div>' : ''}
   `;
+  _grActiveTier = 'all';
+}
+
+let _grActiveTier = 'all';
+
+function filterGRByTier(tierId) {
+  _grActiveTier = tierId;
+  document.querySelectorAll('.gr-tier-filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tier === tierId);
+  });
+  filterGRCards();
 }
 
 function filterGRCards() {
   const q = (document.getElementById('gr-search-input')?.value || '').toLowerCase();
   document.querySelectorAll('.gr-student-card').forEach(card => {
     const name = (card.querySelector('.gr-student-name')?.textContent || '').toLowerCase();
-    card.style.display = (!q || name.includes(q)) ? '' : 'none';
+    const arborId = card.id.replace('grc-', '');
+    const nameOk = !q || name.includes(q);
+    let tierOk = true;
+    if (_grActiveTier !== 'all') {
+      const tIdx = getStudentHighestTier(arborId);
+      if (_grActiveTier === 'none') tierOk = tIdx === -1;
+      else tierOk = tIdx !== -1 && GRAD_TIERS[tIdx].id === _grActiveTier;
+    }
+    card.style.display = (nameOk && tierOk) ? '' : 'none';
   });
+}
+
+function buildGRSummaryHtml(arborId) {
+  const rec = state.grData[String(arborId)];
+  const sections = [];
+  if (rec) {
+    GRAD_TIERS.forEach(tier => {
+      const items = [];
+      tier.columns.forEach(col => {
+        const intv = rec.interventions[col];
+        if (intv && intv.startDate) {
+          items.push({ label: col, startDate: intv.startDate, endDate: intv.endDate || '' });
+        }
+      });
+      if (tier.editable) {
+        Object.values(rec.customInterventions || {}).filter(v => v.tierId === tier.id && v.startDate).forEach(v => {
+          items.push({ label: v.label, startDate: v.startDate, endDate: v.endDate || '' });
+        });
+      }
+      if (!items.length) return;
+      const pills = items.map(item => {
+        const isOpen = !item.endDate;
+        const dateText = isOpen ? `from ${item.startDate}` : `${item.startDate} → ${item.endDate}`;
+        const shortLabel = item.label.length > 48 ? item.label.slice(0, 48) + '…' : item.label;
+        const pillStyle = isOpen
+          ? `background:${tier.bg};color:${tier.color};border-color:${tier.color}50`
+          : `background:white;color:${tier.color};border-color:${tier.color}40`;
+        return `<span class="gr-isp-pill ${isOpen?'open':'closed'}" style="${pillStyle}" title="${item.label.replace(/"/g,'&quot;')} (${dateText})">${isOpen ? '●' : '○'} ${shortLabel} <em style="font-weight:400;font-style:normal;opacity:0.75">${dateText}</em></span>`;
+      }).join('');
+      sections.push(`<div class="gr-isp-tier-row">
+        <div class="gr-isp-tier-label"><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${tier.color}"></span><span style="color:${tier.color}">${tier.label}</span></div>
+        <div class="gr-isp-pills">${pills}</div>
+      </div>`);
+    });
+  }
+  if (!sections.length) return '';
+  return `<div class="gr-isp-section">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Graduated Response — Interventions</div>
+    ${sections.join('')}
+  </div>`;
 }
 
 function openStudentGR(arborId) {
