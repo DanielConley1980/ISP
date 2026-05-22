@@ -550,8 +550,8 @@
   }
   .gr-search-bar input:focus { border-color: var(--teal); }
   .gr-student-detail-header {
-    display: flex; align-items: center; gap: 14px;
-    margin-bottom: 1.25rem;
+    display: flex; align-items: flex-start; gap: 14px;
+    margin-bottom: 1rem;
     padding: 1.1rem 1.25rem;
     background: var(--surface);
     border: 1px solid var(--border);
@@ -559,6 +559,44 @@
   }
   .gr-student-detail-header h2 { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
   .gr-student-detail-header p { font-size: 13px; color: var(--muted); }
+  .gr-tier-label-text { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .gr-stat-strip {
+    display: flex; flex-wrap: wrap; gap: 7px;
+    margin-bottom: 1rem;
+  }
+  .gr-stat-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600;
+    padding: 5px 11px; border-radius: 20px;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .gr-stat-chip.open { background: #fff3e0; border-color: #e67e22; color: #b7510c; }
+  .gr-stat-chip.recent { background: var(--teal-light); border-color: rgba(15,110,86,0.25); color: var(--teal); }
+  .gr-stat-chip.att-up { background: #e8f5e9; border-color: #2e7d32; color: #2e7d32; }
+  .gr-stat-chip.att-down { background: #fdecea; border-color: #c0392b; color: #c0392b; }
+  .gr-stat-chip.sus-up { background: #fdecea; border-color: #c0392b; color: #c0392b; }
+  .gr-quick-close {
+    background: #fff8f0; border: 1.5px solid #e67e22;
+    border-radius: var(--radius-lg); margin-bottom: 1rem; overflow: hidden;
+  }
+  .gr-quick-close-hdr {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 1.25rem; background: #fff3e0; border-bottom: 1px solid #f0c080;
+  }
+  .gr-quick-close-hdr span { font-size: 13px; font-weight: 700; color: #b7510c; }
+  .gr-open-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 1.25rem; border-bottom: 1px solid #f5d9b0; font-size: 13px;
+  }
+  .gr-open-item:last-child { border-bottom: none; }
+  .gr-open-item .gr-int-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gr-open-item .tier-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .gr-open-item input[type=date] { padding: 4px 8px; border: 1px solid #e0b070; border-radius: 5px; font-size: 12px; font-family: inherit; background: #fff; }
+  .gr-open-item .close-btn { font-size: 12px; padding: 4px 10px; }
+  .gr-card-stats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .gr-card-chip { font-size: 11px; padding: 2px 8px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); color: var(--muted); font-weight: 600; }
+  .gr-card-chip.open { background: #fff3e0; border-color: #e67e22; color: #b7510c; }
 </style>
 </head>
 <body>
@@ -3790,6 +3828,33 @@ function getStudentHighestTier(arborId) {
   return -1;
 }
 
+function getGRStats(arborId) {
+  const rec = state.grData[arborId];
+  const result = { total: 0, open: 0, mostRecent: null };
+  if (!rec) return result;
+  const allIntv = [];
+  GRAD_TIERS.forEach(tier => {
+    tier.columns.forEach(col => {
+      const intv = rec.interventions[col];
+      if (intv && intv.startDate) {
+        allIntv.push({ label: col, tierColor: tier.color, isCustom: false, key: col, ...intv });
+      }
+    });
+    if (tier.editable) {
+      Object.entries(rec.customInterventions || {}).filter(([,v]) => v.tierId === tier.id && v.startDate).forEach(([k, v]) => {
+        allIntv.push({ label: v.label || k, tierColor: tier.color, isCustom: true, key: k, ...v });
+      });
+    }
+  });
+  result.total = allIntv.length;
+  result.open = allIntv.filter(i => !i.endDate).length;
+  if (allIntv.length) {
+    const sorted = allIntv.slice().sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
+    result.mostRecent = sorted[0];
+  }
+  return result;
+}
+
 function renderGRScreen() {
   const content = document.getElementById('gr-content');
   if (!content) return;
@@ -3841,9 +3906,18 @@ function renderGRScreen() {
 
   const tierBadgeHtml = (arborId) => {
     const t = getStudentHighestTier(arborId);
-    if (t === -1) return `<span class="gr-tier-badge" style="background:#f0f0f0;color:#888">No interventions</span>`;
-    const tier = GRAD_TIERS[t];
-    return `<span class="gr-tier-badge" style="background:${tier.bg};color:${tier.color}">${tier.label}</span>`;
+    const stats = getGRStats(arborId);
+    const badge = t === -1
+      ? `<span class="gr-tier-badge" style="background:#f0f0f0;color:#888">No interventions</span>`
+      : `<span class="gr-tier-badge" style="background:${GRAD_TIERS[t].bg};color:${GRAD_TIERS[t].color}">${GRAD_TIERS[t].label}</span>`;
+    const openChip = stats.open > 0
+      ? `<span class="gr-card-chip open">⚠ ${stats.open} open</span>` : '';
+    const totalChip = stats.total > 0
+      ? `<span class="gr-card-chip">🎯 ${stats.total} recorded</span>` : '';
+    return `
+      <div class="gr-tier-label-text" style="margin-top:8px">Highest Tier of Intervention</div>
+      ${badge}
+      <div class="gr-card-stats">${totalChip}${openChip}</div>`;
   };
 
   content.innerHTML = `
@@ -3906,6 +3980,50 @@ function openStudentGR(arborId) {
     ? `<span class="gr-tier-badge" style="background:#f0f0f0;color:#888">No interventions</span>`
     : `<span class="gr-tier-badge" style="background:${GRAD_TIERS[highestTierIdx].bg};color:${GRAD_TIERS[highestTierIdx].color}">${GRAD_TIERS[highestTierIdx].label}</span>`;
 
+  // Stats
+  const stats = getGRStats(arborId);
+
+  // Attendance comparison
+  const attNow = parseFloat(s && (s['Present'] || s['Attendance'] || '')) || null;
+  const attPrev = parseFloat(s && (s['Attendance Last Term'] || s['Last Term Attendance'] || s['Present Last Term'] || '')) || null;
+  let attChipHtml = '';
+  if (attNow !== null) {
+    if (attPrev !== null) {
+      const diff = (attNow - attPrev).toFixed(1);
+      const cls = diff >= 0 ? 'att-up' : 'att-down';
+      const arrow = diff >= 0 ? '↑' : '↓';
+      attChipHtml = `<span class="gr-stat-chip ${cls}">📅 Attendance: ${attNow}% (${arrow}${Math.abs(diff)}% vs last term)</span>`;
+    } else {
+      const col = attNow < 85 ? 'att-down' : attNow < 90 ? '' : 'att-up';
+      attChipHtml = `<span class="gr-stat-chip ${col}">📅 Attendance: ${attNow}%</span>`;
+    }
+  }
+
+  // Suspensions comparison
+  const susNow = s ? parseInt(s['Suspensions this Year'] || s['Suspensions This Year'] || '') : NaN;
+  const susPrev = s ? parseInt(s['Suspensions Last Year'] || s['Suspensions Previous Year'] || '') : NaN;
+  let susChipHtml = '';
+  if (!isNaN(susNow)) {
+    if (!isNaN(susPrev)) {
+      const diff = susNow - susPrev;
+      const cls = diff > 0 ? 'sus-up' : '';
+      const arrow = diff > 0 ? `↑+${diff}` : diff < 0 ? `↓${diff}` : '→ no change';
+      susChipHtml = `<span class="gr-stat-chip ${cls}">⚠️ Suspensions: ${susNow} this yr (${arrow} vs last yr)</span>`;
+    } else if (susNow > 0) {
+      susChipHtml = `<span class="gr-stat-chip sus-up">⚠️ Suspensions this year: ${susNow}</span>`;
+    }
+  }
+
+  const recentChip = stats.mostRecent
+    ? `<span class="gr-stat-chip recent" title="${stats.mostRecent.label}">🕐 Most recent: ${stats.mostRecent.startDate} — ${stats.mostRecent.label.length > 40 ? stats.mostRecent.label.slice(0,40)+'…' : stats.mostRecent.label}</span>`
+    : '';
+  const totalChip = `<span class="gr-stat-chip">🎯 ${stats.total} intervention${stats.total !== 1 ? 's' : ''} recorded</span>`;
+  const openChip = stats.open > 0
+    ? `<span class="gr-stat-chip open">⚠ ${stats.open} open (no end date)</span>` : '';
+
+  // Quick-close panel for open interventions
+  const quickCloseHtml = renderQuickClosePanel(arborId, rec);
+
   const tiersHtml = GRAD_TIERS.map((tier, tIdx) => {
     const allCols = tier.columns;
     const customEntries = Object.entries(rec.customInterventions || {}).filter(([k, v]) => v.tierId === tier.id);
@@ -3948,10 +4066,118 @@ function openStudentGR(arborId) {
         <h2>${studentName}</h2>
         <p>${[year, form].filter(Boolean).join(' · ') || 'No year/form data'}</p>
       </div>
-      ${highestTierBadge}
+      <div style="text-align:right">
+        <div class="gr-tier-label-text">Highest Tier of Intervention</div>
+        ${highestTierBadge}
+      </div>
     </div>
+    <div class="gr-stat-strip">
+      ${totalChip}${openChip}${recentChip}${attChipHtml}${susChipHtml}
+    </div>
+    ${quickCloseHtml}
     ${tiersHtml}
   `;
+}
+
+function renderQuickClosePanel(arborId, rec) {
+  const openItems = [];
+  GRAD_TIERS.forEach(tier => {
+    tier.columns.forEach(col => {
+      const intv = rec.interventions[col];
+      if (intv && intv.startDate && !intv.endDate) {
+        openItems.push({ key: col, label: col, tierColor: tier.color, isCustom: false });
+      }
+    });
+    Object.entries(rec.customInterventions || {}).filter(([,v]) => v.tierId === tier.id && v.startDate && !v.endDate).forEach(([k, v]) => {
+      openItems.push({ key: k, label: v.label || k, tierColor: tier.color, isCustom: true });
+    });
+  });
+  if (!openItems.length) return '';
+  const today = new Date().toISOString().split('T')[0];
+  const rows = openItems.map(item => {
+    const kid = grKeyToId(item.key);
+    const encKey = encodeURIComponent(item.key);
+    const shortLabel = item.label.length > 55 ? item.label.slice(0, 55) + '…' : item.label;
+    return `<div class="gr-open-item" data-key="${encKey}" data-kid="${kid}" data-arbor="${arborId}" data-custom="${item.isCustom}">
+      <div class="tier-dot" style="background:${item.tierColor}"></div>
+      <span class="gr-int-name" title="${item.label.replace(/"/g,'&quot;')}">${shortLabel}</span>
+      <input type="date" id="qc-end-${kid}-${arborId}" value="" placeholder="End date" />
+      <button class="btn-secondary close-btn" onclick="quickCloseIntervention('${arborId}','${kid}',${item.isCustom})">Close</button>
+    </div>`;
+  }).join('');
+  return `<div class="gr-quick-close">
+    <div class="gr-quick-close-hdr">
+      <span>⚠ ${openItems.length} open intervention${openItems.length !== 1 ? 's' : ''} — no end date recorded</span>
+      <button class="btn-secondary" style="font-size:12px;padding:4px 12px" onclick="quickCloseAll('${arborId}')">Set all to today</button>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+function quickCloseIntervention(arborId, kid, isCustom) {
+  const dateEl = document.getElementById(`qc-end-${kid}-${arborId}`);
+  const endDate = dateEl ? dateEl.value : '';
+  if (!endDate) { alert('Please select an end date.'); return; }
+  // Find the open-item row to get the key
+  const row = document.querySelector(`.gr-open-item[data-kid="${kid}"][data-arbor="${arborId}"]`);
+  if (!row) return;
+  const key = decodeURIComponent(row.dataset.key || '');
+  const rec = state.grData[arborId];
+  if (!rec) return;
+  if (isCustom) {
+    if (rec.customInterventions[key]) rec.customInterventions[key].endDate = endDate;
+  } else {
+    if (rec.interventions[key]) rec.interventions[key].endDate = endDate;
+    else rec.interventions[key] = { startDate: '', endDate, notes: '' };
+  }
+  // Also update the main detail panel input if visible
+  const mainEndEl = document.getElementById(`gr-end-${kid}-${arborId}`);
+  if (mainEndEl) mainEndEl.value = endDate;
+  saveGRData();
+  postGRToSheet(arborId);
+  // Remove row from quick-close panel
+  row.style.opacity = '0.4';
+  row.style.pointerEvents = 'none';
+  const btn = row.querySelector('.close-btn');
+  if (btn) { btn.textContent = 'Closed ✓'; btn.disabled = true; }
+  // Update open count chip
+  const stats = getGRStats(arborId);
+  document.querySelectorAll('.gr-stat-chip.open').forEach(el => {
+    el.textContent = stats.open > 0 ? `⚠ ${stats.open} open (no end date)` : '';
+    if (!stats.open) el.style.display = 'none';
+  });
+}
+
+function quickCloseAll(arborId) {
+  const today = new Date().toISOString().split('T')[0];
+  document.querySelectorAll(`.gr-open-item[data-arbor="${arborId}"]`).forEach(row => {
+    const dateEl = row.querySelector('input[type=date]');
+    if (dateEl && !dateEl.value) dateEl.value = today;
+  });
+  // Apply each
+  const rec = state.grData[arborId];
+  if (!rec) return;
+  document.querySelectorAll(`.gr-open-item[data-arbor="${arborId}"]`).forEach(row => {
+    const kid = row.dataset.kid;
+    const key = decodeURIComponent(row.dataset.key || '');
+    const isCustom = row.dataset.custom === 'true';
+    const dateEl = row.querySelector('input[type=date]');
+    const endDate = dateEl ? dateEl.value : today;
+    if (isCustom) {
+      if (rec.customInterventions[key]) rec.customInterventions[key].endDate = endDate;
+    } else {
+      if (!rec.interventions[key]) rec.interventions[key] = { startDate: '', endDate, notes: '' };
+      else rec.interventions[key].endDate = endDate;
+    }
+    row.style.opacity = '0.4';
+    row.style.pointerEvents = 'none';
+    const btn = row.querySelector('.close-btn');
+    if (btn) { btn.textContent = 'Closed ✓'; btn.disabled = true; }
+  });
+  saveGRData();
+  postGRToSheet(arborId);
+  // Hide open chips
+  document.querySelectorAll('.gr-stat-chip.open').forEach(el => { el.style.display = 'none'; });
 }
 
 function grKeyToId(key) {
