@@ -726,7 +726,8 @@
               <th data-col="arborId" class="sortable">UPN <span class="sort-icon">↕</span></th>
               <th data-col="year"    class="sortable">Year <span class="sort-icon">↕</span></th>
               <th data-col="school"  class="sortable">School <span class="sort-icon">↕</span></th>
-              <th data-col="level"   class="sortable">Level <span class="sort-icon">↕</span></th>
+              <th data-col="sen"     class="sortable">SEN <span class="sort-icon">↕</span></th>
+              <th data-col="grTier" class="sortable">GR Tier <span class="sort-icon">↕</span></th>
               <th>Areas</th>
               <th data-col="staff"   class="sortable">Staff <span class="sort-icon">↕</span></th>
               <th data-col="updated" class="sortable">Last updated <span class="sort-icon">↕</span></th>
@@ -738,7 +739,8 @@
               <th><input type="text" placeholder="Filter…" data-col="arborId" oninput="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)" /></th>
               <th><select data-col="year" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option>Year 7</option><option>Year 8</option><option>Year 9</option><option>Year 10</option><option>Year 11</option></select></th>
               <th><input type="text" placeholder="Filter…" data-col="school"  oninput="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)" /></th>
-              <th><select data-col="level" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option>Targeted</option><option>Targeted Plus</option></select></th>
+              <th><select data-col="sen" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option value="M">M</option><option value="K">K</option><option value="E">E</option></select></th>
+              <th><select data-col="grTier" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option></select></th>
               <th></th>
               <th><input type="text" placeholder="Filter…" data-col="staff"   oninput="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)" /></th>
               <th></th>
@@ -1566,7 +1568,7 @@ const AREA_LABELS = {
 
 const GRAD_TIERS = [
   {
-    id: 'universal', label: 'Universal', color: '#1a7a4a', bg: '#e8f5e9',
+    id: 'universal', label: 'Tier 1', color: '#1a7a4a', bg: '#e8f5e9',
     editable: true,
     columns: [
       'Discussion with DSL and other key staff e.g. staff with regular contact',
@@ -1585,7 +1587,7 @@ const GRAD_TIERS = [
     ]
   },
   {
-    id: 'targeted', label: 'Targeted', color: '#e67e22', bg: '#fff8e1',
+    id: 'targeted', label: 'Tier 2', color: '#e67e22', bg: '#fff8e1',
     editable: true,
     columns: [
       'Form Tutor report / class teacher report',
@@ -1610,7 +1612,7 @@ const GRAD_TIERS = [
     ]
   },
   {
-    id: 'targeted_plus', label: 'Targeted Plus', color: '#d35400', bg: '#fff3e0',
+    id: 'targeted_plus', label: 'Tier 3', color: '#d35400', bg: '#fff3e0',
     editable: false,
     columns: [
       'Learning Need Assessments (e.g. WRAT5, BPVS, Dyslexia Screener, Neurodiversity, SaLT Checklists, DfE EYFS SEND)',
@@ -1649,7 +1651,7 @@ const GRAD_TIERS = [
     ]
   },
   {
-    id: 'specialist', label: 'Specialist', color: '#b71c1c', bg: '#ffebee',
+    id: 'specialist', label: 'Tier 4', color: '#b71c1c', bg: '#ffebee',
     editable: false,
     columns: [
       'Application for EHCP Needs Assessment',
@@ -1739,10 +1741,26 @@ function fmtLastEdited(iso) {
   return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
 }
 
+function senCode(isp) {
+  const d = ((isp.overview && isp.overview.diagnoses) || isp.level || '').trim();
+  if (/^ehcp/i.test(d) || /\behcp\b/i.test(d)) return 'E';
+  if (/^K\b/i.test(d) || /\bK\b/.test(d)) return 'K';
+  if (/^monitoring/i.test(d) || /\bmonitoring\b/i.test(d)) return 'M';
+  return '';
+}
+
+function grTierNum(arborId) {
+  const t = getStudentHighestTier(arborId);
+  return t === -1 ? '' : String(t + 1); // 1-based
+}
+
 function sortISPs(isps) {
   const { col, dir } = dashSort;
   return [...isps].sort((a, b) => {
-    let av = a[col] || '', bv = b[col] || '';
+    let av, bv;
+    if (col === 'sen')    { av = senCode(a); bv = senCode(b); }
+    else if (col === 'grTier') { av = getStudentHighestTier(a.arborId); bv = getStudentHighestTier(b.arborId); }
+    else { av = a[col] || ''; bv = b[col] || ''; }
     // Year sort numerically
     if (col === 'year') { av = parseInt(av.replace('Year ',''))||0; bv = parseInt(bv.replace('Year ',''))||0; }
     // ISO date sort
@@ -1771,12 +1789,14 @@ function filterISPs(isps) {
     if (dashStatFilter === 'term'   && !isCreatedThisTerm(isp))       return false;
     // Per-column filters
     for (const [col, val] of Object.entries(filters)) {
+      if (col === 'sen') { if (senCode(isp) !== val) return false; continue; }
+      if (col === 'grTier') { if (grTierNum(isp.arborId) !== val) return false; continue; }
       const cell = String(isp[col] || '').toLowerCase();
       if (!cell.includes(val)) return false;
     }
     // Global search
     if (search) {
-      const hay = [isp.name, isp.arborId, isp.year, isp.school, isp.staff, isp.level].join(' ').toLowerCase();
+      const hay = [isp.name, isp.arborId, isp.year, isp.school, isp.staff, senCode(isp)].join(' ').toLowerCase();
       if (!hay.includes(search)) return false;
     }
     return true;
@@ -1845,7 +1865,8 @@ function renderDashboard() {
       <td style="font-family:monospace;font-size:13px">${isp.arborId}</td>
       <td>${isp.year}</td>
       <td style="font-size:13px;color:var(--muted)">${isp.school||'—'}</td>
-      <td><span class="badge ${isp.level==='Targeted Plus'?'badge-amber':'badge-teal'}">${isp.level}</span></td>
+      <td>${(() => { const c = senCode(isp); const col = c==='E'?'#b71c1c':c==='K'?'var(--teal)':'var(--muted)'; return c ? `<span style="font-size:13px;font-weight:800;color:${col}">${c}</span>` : '<span style="color:var(--subtle)">—</span>'; })()}</td>
+      <td>${(() => { const t = getStudentHighestTier(isp.arborId); if (t===-1) return '<span style="color:var(--subtle)">—</span>'; const tier=GRAD_TIERS[t]; return `<span class="gr-tier-badge" style="background:${tier.bg};color:${tier.color};font-size:11px">${tier.label}</span>`; })()}</td>
       <td style="font-size:12px;color:var(--muted);max-width:150px">${areaLabels.join(', ')||'—'}</td>
       <td style="font-size:13px">${isp.staff||'—'}</td>
       <td style="font-size:13px;color:var(--muted)">${isp.updated||'—'}${apdrCount?` <span class="badge badge-blue" style="margin-left:4px">${apdrCount} APDR</span>`:''}</td>
