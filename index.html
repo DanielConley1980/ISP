@@ -2866,6 +2866,7 @@ function confirmAreaRemoval(key, idx) {
   isp.updated    = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   isp.lastEdited = new Date().toISOString();
   saveISPs();
+  postToSheet(isp);
 
   editViewAreas(idx);
   vsStrengths(isp, idx);
@@ -2880,6 +2881,7 @@ function addAreaOfNeed(key, idx) {
   isp.updated    = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   isp.lastEdited = new Date().toISOString();
   saveISPs();
+  postToSheet(isp);
   editViewAreas(idx);
   vsStrengths(isp, idx);
 }
@@ -3106,6 +3108,7 @@ function saveAPDR(idx) {
   isp.updated = new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
   isp.lastEdited = new Date().toISOString();
   saveISPs();
+  postToSheet(isp);
   renderViewScreen(isp, idx);
 }
 
@@ -3113,6 +3116,7 @@ function deleteAPDR(ispIdx, apdrIdx) {
   if (!confirm('Remove this APDR entry?')) return;
   state.isps[ispIdx].apdr.splice(apdrIdx, 1);
   saveISPs();
+  postToSheet(state.isps[ispIdx]);
   renderViewScreen(state.isps[ispIdx], ispIdx);
 }
 
