@@ -550,15 +550,25 @@
   }
   .gr-search-bar input:focus { border-color: var(--teal); }
   .gr-student-detail-header {
-    display: flex; align-items: flex-start; gap: 14px;
     margin-bottom: 1rem;
-    padding: 1.1rem 1.25rem;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
+    overflow: hidden;
   }
   .gr-student-detail-header h2 { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
   .gr-student-detail-header p { font-size: 13px; color: var(--muted); }
+  .gr-hdr-data-row {
+    display: flex; flex-wrap: wrap; gap: 0;
+    border-top: 1px solid var(--border); background: var(--bg);
+  }
+  .gr-hdr-stat {
+    padding: 10px 1.25rem; border-right: 1px solid var(--border); min-width: 140px;
+  }
+  .gr-hdr-stat:last-child { border-right: none; }
+  .gr-hdr-stat-label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .gr-hdr-stat-val { font-size: 18px; font-weight: 800; line-height: 1.1; }
+  .gr-hdr-stat-sub { font-size: 11px; margin-top: 2px; }
   .gr-tier-label-text { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
   .gr-stat-strip {
     display: flex; flex-wrap: wrap; gap: 7px;
@@ -4090,39 +4100,49 @@ function openStudentGR(arborId) {
   // Stats
   const stats = getGRStats(arborId);
 
-  // Attendance comparison
+  // Attendance — card row
   const attNow = parseFloat(s && (s['Present'] || s['Attendance'] || '')) || null;
   const attPrev = parseFloat(s && (s['Attendance Last Term'] || s['Last Term Attendance'] || s['Present Last Term'] || '')) || null;
-  let attChipHtml = '';
+  let attStatHtml = '';
   if (attNow !== null) {
+    const attColor = attNow < 85 ? '#c0392b' : attNow < 90 ? '#e67e22' : '#2e7d32';
+    let attSub = '';
     if (attPrev !== null) {
       const diff = (attNow - attPrev).toFixed(1);
-      const cls = diff >= 0 ? 'att-up' : 'att-down';
       const arrow = diff >= 0 ? '↑' : '↓';
-      attChipHtml = `<span class="gr-stat-chip ${cls}">📅 Attendance: ${attNow}% (${arrow}${Math.abs(diff)}% vs last term)</span>`;
-    } else {
-      const col = attNow < 85 ? 'att-down' : attNow < 90 ? '' : 'att-up';
-      attChipHtml = `<span class="gr-stat-chip ${col}">📅 Attendance: ${attNow}%</span>`;
+      attSub = `<div class="gr-hdr-stat-sub" style="color:${diff >= 0 ? '#2e7d32' : '#c0392b'}">${arrow}${Math.abs(diff)}% vs last term</div>`;
     }
+    attStatHtml = `<div class="gr-hdr-stat">
+      <div class="gr-hdr-stat-label">Attendance</div>
+      <div class="gr-hdr-stat-val" style="color:${attColor}">${attNow}%</div>
+      ${attSub}
+    </div>`;
   }
 
-  // Suspensions comparison
+  // Suspensions — card row
   const susNow = s ? parseInt(s['Suspensions this Year'] || s['Suspensions This Year'] || '') : NaN;
   const susPrev = s ? parseInt(s['Suspensions Last Year'] || s['Suspensions Previous Year'] || '') : NaN;
-  let susChipHtml = '';
+  let susStatHtml = '';
   if (!isNaN(susNow)) {
+    const susColor = susNow > 2 ? '#c0392b' : susNow > 0 ? '#e67e22' : '#2e7d32';
+    let susSub = '';
     if (!isNaN(susPrev)) {
       const diff = susNow - susPrev;
-      const cls = diff > 0 ? 'sus-up' : '';
-      const arrow = diff > 0 ? `↑+${diff}` : diff < 0 ? `↓${diff}` : '→ no change';
-      susChipHtml = `<span class="gr-stat-chip ${cls}">⚠️ Suspensions: ${susNow} this yr (${arrow} vs last yr)</span>`;
-    } else if (susNow > 0) {
-      susChipHtml = `<span class="gr-stat-chip sus-up">⚠️ Suspensions this year: ${susNow}</span>`;
+      const arrow = diff > 0 ? `↑ +${diff}` : diff < 0 ? `↓ ${diff}` : '→ no change';
+      susSub = `<div class="gr-hdr-stat-sub" style="color:${diff > 0 ? '#c0392b' : diff < 0 ? '#2e7d32' : 'var(--muted)'}">${arrow} vs last year</div>`;
     }
+    susStatHtml = `<div class="gr-hdr-stat">
+      <div class="gr-hdr-stat-label">Suspensions this year</div>
+      <div class="gr-hdr-stat-val" style="color:${susColor}">${susNow}</div>
+      ${susSub}
+    </div>`;
   }
 
+  const dataRowHtml = (attStatHtml || susStatHtml)
+    ? `<div class="gr-hdr-data-row">${attStatHtml}${susStatHtml}</div>` : '';
+
   const recentChip = stats.mostRecent
-    ? `<span class="gr-stat-chip recent" title="${stats.mostRecent.label}">🕐 Most recent: ${stats.mostRecent.startDate} — ${stats.mostRecent.label.length > 40 ? stats.mostRecent.label.slice(0,40)+'…' : stats.mostRecent.label}</span>`
+    ? `<span class="gr-stat-chip recent" style="flex:1;min-width:0;white-space:normal">🕐 Most recent: <strong>${stats.mostRecent.startDate}</strong> — ${stats.mostRecent.label}</span>`
     : '';
   const totalChip = `<span class="gr-stat-chip">🎯 ${stats.total} intervention${stats.total !== 1 ? 's' : ''} recorded</span>`;
   const openChip = stats.open > 0
@@ -4169,17 +4189,20 @@ function openStudentGR(arborId) {
       <button class="btn-ghost" onclick="renderGRScreen()">← Back</button>
     </div>
     <div class="gr-student-detail-header">
-      <div style="flex:1">
-        <h2>${studentName}</h2>
-        <p>${[year, form].filter(Boolean).join(' · ') || 'No year/form data'}</p>
+      <div style="display:flex;align-items:flex-start;gap:14px;padding:1.1rem 1.25rem">
+        <div style="flex:1">
+          <h2>${studentName}</h2>
+          <p>${[year, form].filter(Boolean).join(' · ') || 'No year/form data'}</p>
+        </div>
+        <div style="text-align:right">
+          <div class="gr-tier-label-text">Highest Tier of Intervention</div>
+          ${highestTierBadge}
+        </div>
       </div>
-      <div style="text-align:right">
-        <div class="gr-tier-label-text">Highest Tier of Intervention</div>
-        ${highestTierBadge}
-      </div>
+      ${dataRowHtml}
     </div>
     <div class="gr-stat-strip">
-      ${totalChip}${openChip}${recentChip}${attChipHtml}${susChipHtml}
+      ${totalChip}${openChip}${recentChip}
     </div>
     ${quickCloseHtml}
     ${tiersHtml}
