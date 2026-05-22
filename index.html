@@ -3737,6 +3737,416 @@ function renderISPPreview(idx) {
     </div>`;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   GRADUATED RESPONSE — functions
+═══════════════════════════════════════════════════════════════════ */
+
+function seedGRFromSheet() {
+  (state.sheetStudents || []).forEach(s => {
+    const aid = String(s['Arbor ID']);
+    if (!state.grData[aid]) state.grData[aid] = { arborId: aid, studentName: s['Pupil Name']||'', interventions: {}, customInterventions: {} };
+    const rec = state.grData[aid];
+    GRAD_TIERS.forEach(tier => {
+      tier.columns.forEach(col => {
+        const val = s[col];
+        if (val && !rec.interventions[col]) {
+          rec.interventions[col] = { startDate: String(val), endDate: '', notes: '' };
+        }
+      });
+    });
+  });
+}
+
+async function postGRToSheet(arborId) {
+  if (!state.sheetUrl || !state.grData[arborId]) return;
+  const rec = state.grData[arborId];
+  const json = JSON.stringify(rec);
+  const CHUNK = 1500;
+  const chunks = [];
+  for (let i = 0; i < json.length; i += CHUNK) chunks.push(json.slice(i, i + CHUNK));
+  const id = encodeURIComponent('gr_' + arborId);
+  const total = chunks.length;
+  for (let n = 0; n < chunks.length; n++) {
+    const url = `${state.sheetUrl}?action=chunk&id=${id}&n=${n}&total=${total}&data=${encodeURIComponent(chunks[n])}`;
+    await fetch(url);
+  }
+  await fetch(`${state.sheetUrl}?action=commitGR&id=${encodeURIComponent(arborId)}`);
+}
+
+function getStudentHighestTier(arborId) {
+  const rec = state.grData[arborId];
+  if (!rec) return -1;
+  for (let t = GRAD_TIERS.length - 1; t >= 0; t--) {
+    const tier = GRAD_TIERS[t];
+    // Check standard interventions
+    const hasStandard = tier.columns.some(col => rec.interventions && rec.interventions[col] && rec.interventions[col].startDate);
+    if (hasStandard) return t;
+    // Check custom interventions for editable tiers
+    if (tier.editable && rec.customInterventions) {
+      const hasCustom = Object.values(rec.customInterventions).some(ci => ci.tierId === tier.id && ci.startDate);
+      if (hasCustom) return t;
+    }
+  }
+  return -1;
+}
+
+function renderGRScreen() {
+  const content = document.getElementById('gr-content');
+  if (!content) return;
+
+  // Update user bar
+  if (state.user) {
+    const a = document.getElementById('gr-av'), n = document.getElementById('gr-name-bar');
+    if (a) a.textContent = state.user.initials;
+    if (n) n.textContent = state.user.name;
+  }
+
+  // Build student list from sheetStudents + any grData entries
+  const studentMap = {};
+
+  // Add from sheetStudents
+  (state.sheetStudents || []).forEach(s => {
+    const aid = String(s['Arbor ID']);
+    studentMap[aid] = {
+      arborId: aid,
+      name: s['Pupil Name'] || aid,
+      year: s['NC Year'] || '',
+      form: s['Form'] || '',
+    };
+  });
+
+  // Also include any grData entries not in sheet
+  Object.values(state.grData).forEach(rec => {
+    if (!studentMap[rec.arborId]) {
+      studentMap[rec.arborId] = { arborId: rec.arborId, name: rec.studentName || rec.arborId, year: '', form: '' };
+    }
+  });
+
+  // If no students at all, use ISP list as fallback
+  if (!Object.keys(studentMap).length) {
+    state.isps.forEach(isp => {
+      studentMap[isp.arborId] = { arborId: isp.arborId, name: isp.name, year: isp.year, form: isp.form };
+    });
+  }
+
+  let students = Object.values(studentMap);
+
+  // Sort: highest tier first, then alphabetically
+  students.sort((a, b) => {
+    const ta = getStudentHighestTier(a.arborId);
+    const tb = getStudentHighestTier(b.arborId);
+    if (tb !== ta) return tb - ta;
+    return a.name.localeCompare(b.name);
+  });
+
+  const tierBadgeHtml = (arborId) => {
+    const t = getStudentHighestTier(arborId);
+    if (t === -1) return `<span class="gr-tier-badge" style="background:#f0f0f0;color:#888">No interventions</span>`;
+    const tier = GRAD_TIERS[t];
+    return `<span class="gr-tier-badge" style="background:${tier.bg};color:${tier.color}">${tier.label}</span>`;
+  };
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:10px">
+      <div>
+        <h1 style="font-size:22px;font-weight:700;margin-bottom:3px">Graduated Response</h1>
+        <p style="font-size:14px;color:var(--muted)">${students.length} students · track interventions across 4 tiers</p>
+      </div>
+    </div>
+    <div class="gr-search-bar" style="margin-bottom:1rem">
+      <input type="text" id="gr-search-input" placeholder="Search students…" oninput="filterGRCards()" />
+    </div>
+    <div class="gr-student-grid" id="gr-student-grid">
+      ${students.map(s => `
+        <div class="gr-student-card" id="grc-${s.arborId}" onclick="openStudentGR('${s.arborId}')">
+          <div class="gr-student-name">${s.name}</div>
+          <div class="gr-student-meta">${[s.year, s.form].filter(Boolean).join(' · ') || 'No year/form data'}</div>
+          ${tierBadgeHtml(s.arborId)}
+        </div>`).join('')}
+    </div>
+    ${!students.length ? '<div style="padding:3rem;text-align:center;color:var(--muted);font-size:14px">No students found. Connect a sheet to load student data.</div>' : ''}
+  `;
+}
+
+function filterGRCards() {
+  const q = (document.getElementById('gr-search-input')?.value || '').toLowerCase();
+  document.querySelectorAll('.gr-student-card').forEach(card => {
+    const name = (card.querySelector('.gr-student-name')?.textContent || '').toLowerCase();
+    card.style.display = (!q || name.includes(q)) ? '' : 'none';
+  });
+}
+
+function openStudentGR(arborId) {
+  const content = document.getElementById('gr-content');
+  if (!content) return;
+
+  // Ensure grData entry exists
+  if (!state.grData[arborId]) {
+    const s = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(arborId));
+    const ispRec = state.isps.find(i => String(i.arborId) === String(arborId));
+    state.grData[arborId] = {
+      arborId,
+      studentName: s ? (s['Pupil Name']||'') : (ispRec ? ispRec.name : arborId),
+      interventions: {},
+      customInterventions: {}
+    };
+  }
+
+  const rec = state.grData[arborId];
+
+  // Get student meta
+  const s = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(arborId));
+  const ispRec = state.isps.find(i => String(i.arborId) === String(arborId));
+  const studentName = rec.studentName || (s ? s['Pupil Name'] : (ispRec ? ispRec.name : arborId));
+  const year = s ? (s['NC Year']||'') : (ispRec ? ispRec.year : '');
+  const form = s ? (s['Form']||'') : (ispRec ? ispRec.form : '');
+
+  const highestTierIdx = getStudentHighestTier(arborId);
+  const highestTierBadge = highestTierIdx === -1
+    ? `<span class="gr-tier-badge" style="background:#f0f0f0;color:#888">No interventions</span>`
+    : `<span class="gr-tier-badge" style="background:${GRAD_TIERS[highestTierIdx].bg};color:${GRAD_TIERS[highestTierIdx].color}">${GRAD_TIERS[highestTierIdx].label}</span>`;
+
+  const tiersHtml = GRAD_TIERS.map((tier, tIdx) => {
+    const allCols = tier.columns;
+    const customEntries = Object.entries(rec.customInterventions || {}).filter(([k, v]) => v.tierId === tier.id);
+    const recorded = allCols.filter(col => rec.interventions[col] && rec.interventions[col].startDate).length
+      + customEntries.filter(([k, v]) => v.startDate).length;
+    const total = allCols.length + customEntries.length;
+
+    const rowsHtml = allCols.map(col => renderGRInterventionRow(arborId, col, false, tier.color)).join('');
+    const customRowsHtml = customEntries.map(([key, ci]) => renderGRInterventionRow(arborId, key, true, tier.color)).join('');
+
+    const addCustomBtn = tier.editable
+      ? `<button class="gr-add-custom-btn" onclick="addCustomIntervention('${arborId}','${tier.id}')">＋ Add custom intervention</button>`
+      : '';
+
+    return `
+      <div class="gr-tier-section" id="gr-tier-sec-${tier.id}">
+        <div class="gr-tier-header" id="gr-tier-hdr-${tier.id}"
+          style="border-left-color:${tier.color}"
+          onclick="toggleGRTier('${tier.id}')">
+          <div class="gr-tier-dot" style="background:${tier.color}"></div>
+          <span class="gr-tier-label">${tier.label}</span>
+          <span class="gr-tier-progress">${recorded} / ${total} recorded</span>
+          <span class="gr-tier-chevron" id="gr-chev-${tier.id}">›</span>
+        </div>
+        <div class="gr-tier-body" id="gr-tier-body-${tier.id}">
+          ${rowsHtml}
+          ${customRowsHtml}
+          <div id="gr-custom-form-${tier.id}"></div>
+          ${addCustomBtn}
+        </div>
+      </div>`;
+  }).join('');
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem">
+      <button class="btn-ghost" onclick="renderGRScreen()">← Back</button>
+    </div>
+    <div class="gr-student-detail-header">
+      <div style="flex:1">
+        <h2>${studentName}</h2>
+        <p>${[year, form].filter(Boolean).join(' · ') || 'No year/form data'}</p>
+      </div>
+      ${highestTierBadge}
+    </div>
+    ${tiersHtml}
+  `;
+}
+
+function grKeyToId(key) {
+  // Convert a GR intervention key to a safe DOM id fragment using base64
+  return btoa(unescape(encodeURIComponent(key))).replace(/[^A-Za-z0-9]/g, '_');
+}
+
+function renderGRInterventionRow(arborId, key, isCustom, tierColor) {
+  const rec = state.grData[arborId];
+  const intv = isCustom
+    ? (rec.customInterventions[key] || {})
+    : (rec.interventions[key] || {});
+  const label = isCustom ? (rec.customInterventions[key]?.label || key) : key;
+  const hasDate = !!(intv.startDate);
+  const tick = hasDate
+    ? `<span class="gr-tick" style="color:${tierColor}">&#10003;</span>`
+    : `<span class="gr-tick" style="color:#ccc">&#9675;</span>`;
+  const dateHtml = hasDate
+    ? `<span class="gr-int-date">${intv.startDate}</span>`
+    : '';
+  const kid = grKeyToId(key);
+  const encKey = encodeURIComponent(key);
+  return `
+    <div class="gr-intervention-row" id="gr-introw-${kid}-${arborId}" data-key="${encKey}" data-arbor="${arborId}">
+      ${tick}
+      <span class="gr-int-name" title="${label.replace(/"/g,'&quot;').replace(/</g,'&lt;')}">${label.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+      ${dateHtml}
+      <button class="gr-detail-btn" id="gr-detbtn-${kid}-${arborId}"
+        onclick="toggleGRIntervention('${arborId}','${kid}',${isCustom})">&#9658; Details</button>
+    </div>
+    <div class="gr-detail-panel" id="gr-detpanel-${kid}-${arborId}" style="display:none">
+      <div class="row-3" style="margin-bottom:8px">
+        <div class="field" style="margin:0">
+          <label style="font-size:12px">Start date</label>
+          <input type="date" id="gr-start-${kid}-${arborId}" value="${intv.startDate||''}" />
+        </div>
+        <div class="field" style="margin:0">
+          <label style="font-size:12px">End date</label>
+          <input type="date" id="gr-end-${kid}-${arborId}" value="${intv.endDate||''}" />
+        </div>
+        <div></div>
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label style="font-size:12px">Notes</label>
+        <textarea id="gr-notes-${kid}-${arborId}" style="min-height:52px;font-size:13px;width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;resize:vertical">${(intv.notes||'').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      </div>
+      <button class="btn-primary" style="font-size:12px;padding:6px 14px" onclick="saveGRIntervention('${arborId}','${kid}',${isCustom})">Save</button>
+    </div>`;
+}
+
+function toggleGRTier(tierId) {
+  const body = document.getElementById('gr-tier-body-' + tierId);
+  const chev = document.getElementById('gr-chev-' + tierId);
+  if (!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if (chev) chev.classList.toggle('open', !isOpen);
+}
+
+function toggleGRIntervention(arborId, kid, isCustom) {
+  // kid = base64-encoded key id fragment
+  const panel = document.getElementById(`gr-detpanel-${kid}-${arborId}`);
+  const btn = document.getElementById(`gr-detbtn-${kid}-${arborId}`);
+  if (!panel) return;
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  if (btn) btn.innerHTML = isOpen ? '&#9658; Details' : '&#9660; Hide';
+}
+
+function saveGRIntervention(arborId, kid, isCustom) {
+  if (!state.grData[arborId]) return;
+  const startEl = document.getElementById(`gr-start-${kid}-${arborId}`);
+  const endEl = document.getElementById(`gr-end-${kid}-${arborId}`);
+  const notesEl = document.getElementById(`gr-notes-${kid}-${arborId}`);
+  const startDate = startEl ? startEl.value : '';
+  const endDate = endEl ? endEl.value : '';
+  const notes = notesEl ? notesEl.value : '';
+
+  // Recover actual key from the row's data-key attribute
+  const rowEl = document.getElementById(`gr-introw-${kid}-${arborId}`);
+  if (!rowEl) return;
+  const key = decodeURIComponent(rowEl.dataset.key || '');
+
+  const rec = state.grData[arborId];
+  if (isCustom) {
+    if (!rec.customInterventions[key]) rec.customInterventions[key] = { label: key, tierId: '', startDate: '', endDate: '', notes: '' };
+    rec.customInterventions[key].startDate = startDate;
+    rec.customInterventions[key].endDate = endDate;
+    rec.customInterventions[key].notes = notes;
+  } else {
+    if (!rec.interventions[key]) rec.interventions[key] = { startDate: '', endDate: '', notes: '' };
+    rec.interventions[key].startDate = startDate;
+    rec.interventions[key].endDate = endDate;
+    rec.interventions[key].notes = notes;
+  }
+
+  saveGRData();
+  postGRToSheet(arborId); // fire and forget
+
+  // Update the tick and date inline
+  if (rowEl) {
+    // Find which tier this belongs to for color
+    let tierColor = '#1a7a4a';
+    GRAD_TIERS.forEach(t => { if (t.columns.includes(key)) tierColor = t.color; });
+    if (isCustom) {
+      const ci = rec.customInterventions[key];
+      if (ci) tierColor = (GRAD_TIERS.find(t => t.id === ci.tierId) || GRAD_TIERS[0]).color;
+    }
+    const tick = rowEl.querySelector('.gr-tick');
+    const dateSpan = rowEl.querySelector('.gr-int-date');
+    if (tick) tick.outerHTML = startDate
+      ? `<span class="gr-tick" style="color:${tierColor}">&#10003;</span>`
+      : `<span class="gr-tick" style="color:#ccc">&#9675;</span>`;
+    if (dateSpan) {
+      if (startDate) dateSpan.textContent = startDate;
+      else dateSpan.textContent = '';
+    } else if (startDate) {
+      // Insert date span before the btn
+      const btn = rowEl.querySelector('.gr-detail-btn');
+      if (btn) {
+        const sp = document.createElement('span');
+        sp.className = 'gr-int-date';
+        sp.textContent = startDate;
+        rowEl.insertBefore(sp, btn);
+      }
+    }
+  }
+
+  // Update tier progress text
+  GRAD_TIERS.forEach(tier => {
+    const progressEl = document.querySelector(`#gr-tier-hdr-${tier.id} .gr-tier-progress`);
+    if (!progressEl) return;
+    const customEntries = Object.entries(rec.customInterventions || {}).filter(([k, v]) => v.tierId === tier.id);
+    const recorded = tier.columns.filter(col => rec.interventions[col] && rec.interventions[col].startDate).length
+      + customEntries.filter(([k, v]) => v.startDate).length;
+    const total = tier.columns.length + customEntries.length;
+    progressEl.textContent = `${recorded} / ${total} recorded`;
+  });
+}
+
+function addCustomIntervention(arborId, tierId) {
+  const formContainer = document.getElementById(`gr-custom-form-${tierId}`);
+  if (!formContainer) return;
+  // Toggle: if already showing a form, remove it
+  if (formContainer.innerHTML.trim()) { formContainer.innerHTML = ''; return; }
+  formContainer.innerHTML = `
+    <div class="gr-custom-form">
+      <input type="text" id="gr-custom-label-${tierId}" placeholder="Intervention name…" />
+      <button class="btn-primary" style="font-size:12px;padding:6px 14px;white-space:nowrap" onclick="confirmAddCustom('${arborId}','${tierId}')">Add</button>
+      <button class="btn-ghost" style="font-size:12px;padding:5px 10px" onclick="document.getElementById('gr-custom-form-${tierId}').innerHTML=''">Cancel</button>
+    </div>`;
+  document.getElementById(`gr-custom-label-${tierId}`)?.focus();
+}
+
+function confirmAddCustom(arborId, tierId) {
+  const labelEl = document.getElementById(`gr-custom-label-${tierId}`);
+  const label = labelEl ? labelEl.value.trim() : '';
+  if (!label) { alert('Please enter a name for the intervention.'); return; }
+
+  if (!state.grData[arborId]) state.grData[arborId] = { arborId, studentName: '', interventions: {}, customInterventions: {} };
+  const rec = state.grData[arborId];
+  const existingCustom = Object.keys(rec.customInterventions).filter(k => k.startsWith(`custom_${tierId}_`));
+  const idx = existingCustom.length;
+  const key = `custom_${tierId}_${idx}`;
+  rec.customInterventions[key] = { label, tierId, startDate: '', endDate: '', notes: '' };
+  saveGRData();
+
+  // Clear the form
+  const formContainer = document.getElementById(`gr-custom-form-${tierId}`);
+  if (formContainer) formContainer.innerHTML = '';
+
+  // Find the tier color and re-render the row
+  const tier = GRAD_TIERS.find(t => t.id === tierId);
+  if (!tier) return;
+
+  // Insert before the add-custom button
+  const addBtn = document.querySelector(`#gr-tier-sec-${tierId} .gr-add-custom-btn`);
+  if (addBtn) {
+    const rowHtml = renderGRInterventionRow(arborId, key, true, tier.color);
+    const tmp = document.createElement('div');
+    tmp.innerHTML = rowHtml;
+    while (tmp.firstChild) addBtn.parentNode.insertBefore(tmp.firstChild, addBtn);
+  }
+
+  // Update tier progress
+  const progressEl = document.querySelector(`#gr-tier-hdr-${tierId} .gr-tier-progress`);
+  if (progressEl) {
+    const customEntries = Object.entries(rec.customInterventions || {}).filter(([k, v]) => v.tierId === tierId);
+    const recorded = tier.columns.filter(col => rec.interventions[col] && rec.interventions[col].startDate).length
+      + customEntries.filter(([k, v]) => v.startDate).length;
+    const total = tier.columns.length + customEntries.length;
+    progressEl.textContent = `${recorded} / ${total} recorded`;
+  }
+}
+
 /* ── PDF generation (existing ISP) ── */
 function downloadExistingPDF(idx) {
   openPDFWindow(buildISPPDF(state.isps[idx]), state.isps[idx].name);
@@ -3951,7 +4361,33 @@ function buildISPPDF(src) {
     return json({ ok: true, id: isp.id });
   }
 
-  // ── READ: return students + all saved ISPs ──────────────────────
+  // ── COMMIT GR DATA ─────────────────────────────────────────────
+  if (action === 'commitGR') {
+    const props = PropertiesService.getScriptProperties();
+    const arborId = e.parameter.id;
+    const grId = 'gr_' + arborId;
+    const total = parseInt(props.getProperty('chunk_' + grId + '_total') || '0');
+    let assembled = '';
+    for (let i = 0; i < total; i++) assembled += props.getProperty('chunk_' + grId + '_' + i) || '';
+    for (let i = 0; i < total; i++) props.deleteProperty('chunk_' + grId + '_' + i);
+    props.deleteProperty('chunk_' + grId + '_total');
+    const rec = JSON.parse(assembled);
+    let grSheet = ss.getSheetByName('GR_Data');
+    if (!grSheet) {
+      grSheet = ss.insertSheet('GR_Data');
+      grSheet.getRange(1,1,1,4).setValues([['arborId','studentName','updated','data']]);
+    }
+    const rows = grSheet.getDataRange().getValues();
+    const idCol = rows[0].indexOf('arborId');
+    let rowIdx = -1;
+    for (let i = 1; i < rows.length; i++) { if (String(rows[i][idCol]) === String(rec.arborId)) { rowIdx = i+1; break; } }
+    const rowData = [rec.arborId, rec.studentName||'', new Date().toLocaleDateString('en-GB'), JSON.stringify(rec)];
+    if (rowIdx === -1) grSheet.appendRow(rowData);
+    else grSheet.getRange(rowIdx,1,1,rowData.length).setValues([rowData]);
+    return json({ ok: true });
+  }
+
+  // ── READ: return students + all saved ISPs + grData ─────────────
   const studentSheet = ss.getSheets()[0];
   const [headers, ...rows] = studentSheet.getDataRange().getValues();
   const students = rows.map(row => {
@@ -3971,7 +4407,15 @@ function buildISPPDF(src) {
         .filter(Boolean);
     }
   }
-  return json({ students, isps });
+
+  let grData = [];
+  const grSheet2 = ss.getSheetByName('GR_Data');
+  if (grSheet2 && grSheet2.getLastRow() > 1) {
+    const grRows = grSheet2.getDataRange().getValues();
+    const dcol = grRows[0].indexOf('data');
+    if (dcol > -1) grData = grRows.slice(1).map(r => { try { return JSON.parse(r[dcol]); } catch(e2){ return null; }}).filter(Boolean);
+  }
+  return json({ students, isps, grData });
 }
 
 function doPost(e) { return doGet(e); }
