@@ -775,7 +775,7 @@
         <div style="margin-bottom:1.5rem">
           <div style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Step 0 of 7</div>
           <h1 style="font-size:24px;font-weight:700;margin-bottom:6px">Student lookup</h1>
-          <p style="font-size:14px;color:var(--muted)">Search by name to load student data from your MIS sheet, or enter an Arbor ID manually.</p>
+          <p style="font-size:14px;color:var(--muted)">Search by name to load student data from your MIS sheet, or enter a UPN manually.</p>
         </div>
         <div class="lookup-card">
           <!-- Name search (sheet connected) -->
@@ -1407,7 +1407,7 @@ function onStudentSearchInput() {
   const list = document.getElementById('student-autocomplete');
   if (!matches.length) { list.style.display = 'none'; return; }
   list.innerHTML = matches.map(s => {
-    const aid = s['Arbor ID'];
+    const aid = studentKey(s);
     const name = s['Pupil Name'] || '';
     const yr = s['NC Year'] || '';
     const fm = s['Form'] || '';
@@ -2592,7 +2592,7 @@ function renderStep6(el) {
     <div class="summary-panel">
       <h3>Student details</h3>
       <div class="summary-row"><span class="summary-key">Full name</span><span class="summary-val">${state.student.fullName}</span></div>
-      <div class="summary-row"><span class="summary-key">Arbor ID</span><span class="summary-val">${state.student.arborId}</span></div>
+      <div class="summary-row"><span class="summary-key">UPN</span><span class="summary-val">${state.student.arborId}</span></div>
       <div class="summary-row"><span class="summary-key">Year / form</span><span class="summary-val">${state.student.year} ${state.student.form}</span></div>
       <div class="summary-row"><span class="summary-key">School</span><span class="summary-val">${state.student.school||'—'}</span></div>
       <div class="summary-row"><span class="summary-key">Date of birth</span><span class="summary-val">${state.student.dob||'—'}</span></div>
@@ -2762,7 +2762,7 @@ function buildFallbackHTML(isp) {
     <p style="color:#666;font-size:12px;margin-bottom:20px">${src.school||'Demo School'}</p>
     <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
       <tr style="background:#0F6E56"><th colspan="4" style="color:white;padding:8px;text-align:left">Pupil details</th></tr>
-      <tr><td style="padding:6px;border:1px solid #ccc;width:22%"><strong>Name</strong></td><td style="padding:6px;border:1px solid #ccc">${src.name}</td><td style="padding:6px;border:1px solid #ccc;width:18%"><strong>Arbor ID</strong></td><td style="padding:6px;border:1px solid #ccc">${src.arborId}</td></tr>
+      <tr><td style="padding:6px;border:1px solid #ccc;width:22%"><strong>Name</strong></td><td style="padding:6px;border:1px solid #ccc">${src.name}</td><td style="padding:6px;border:1px solid #ccc;width:18%"><strong>UPN</strong></td><td style="padding:6px;border:1px solid #ccc">${src.arborId}</td></tr>
       <tr><td style="padding:6px;border:1px solid #ccc"><strong>Date of birth</strong></td><td style="padding:6px;border:1px solid #ccc">${src.dob||'—'}</td><td style="padding:6px;border:1px solid #ccc"><strong>Year / form</strong></td><td style="padding:6px;border:1px solid #ccc">${src.year||'—'} ${src.form||''}</td></tr>
       <tr><td style="padding:6px;border:1px solid #ccc"><strong>School</strong></td><td style="padding:6px;border:1px solid #ccc">${src.school||'—'}</td><td style="padding:6px;border:1px solid #ccc"><strong>Gender</strong></td><td style="padding:6px;border:1px solid #ccc">${src.gender||'—'}</td></tr>
       <tr><td style="padding:6px;border:1px solid #ccc"><strong>Diagnoses</strong></td><td style="padding:6px;border:1px solid #ccc" colspan="3">${o.diagnoses||'—'}</td></tr>
@@ -3701,7 +3701,7 @@ function renderISPPreview(idx) {
       <div>
         <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px">${isp.school||'—'}</div>
         <div style="font-size:24px;font-weight:700;margin-bottom:4px">${isp.name}</div>
-        <div style="font-size:14px;color:var(--muted)">Arbor ID: <strong>${isp.arborId}</strong> &nbsp;·&nbsp; ${isp.year} ${isp.form} &nbsp;·&nbsp; DOB: ${isp.dob||'—'} &nbsp;·&nbsp; Gender: ${isp.gender||'—'}</div>
+        <div style="font-size:14px;color:var(--muted)">UPN: <strong>${isp.arborId}</strong> &nbsp;·&nbsp; ${isp.year} ${isp.form} &nbsp;·&nbsp; DOB: ${isp.dob||'—'} &nbsp;·&nbsp; Gender: ${isp.gender||'—'}</div>
       </div>
       <span style="display:inline-block;font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px;${isp.level==='Targeted Plus'?'background:#FAEEDA;color:#854F0B':'background:var(--teal-light);color:var(--teal-dark)'}">${isp.level}</span>
     </div>
@@ -4656,12 +4656,12 @@ function buildISPPDF(src) {
 
     <!-- PAGES 2+: FULL ISP -->
     <h1 style="color:#0F6E56;font-size:18px;margin:0 0 4px">Individual Support Plan</h1>
-    <p style="color:#666;font-size:11px;margin:0 0 16px">${src.school||'School'} &nbsp;·&nbsp; ${src.name} &nbsp;·&nbsp; Arbor ID: ${src.arborId}</p>
+    <p style="color:#666;font-size:11px;margin:0 0 16px">${src.school||'School'} &nbsp;·&nbsp; ${src.name} &nbsp;·&nbsp; UPN: ${src.arborId}</p>
 
     <div style="page-break-inside:avoid">
       <table style="width:100%;border-collapse:collapse;margin-bottom:14px">
         <tr>${th('Pupil details','')}<th colspan="3" style="padding:6px 8px;background:#0F6E56;color:white;border:1px solid #0a5040"></th></tr>
-        <tr>${td('<strong>Name</strong>','width:20%')}${td(src.name)}${td('<strong>Arbor ID</strong>','width:18%')}${td(src.arborId)}</tr>
+        <tr>${td('<strong>Name</strong>','width:20%')}${td(src.name)}${td('<strong>UPN</strong>','width:18%')}${td(src.arborId)}</tr>
         <tr>${td('<strong>Date of birth</strong>')}${td(src.dob||'—')}${td('<strong>Year / form</strong>')}${td((src.year||'—')+' '+(src.form||''))}</tr>
         <tr>${td('<strong>School</strong>')}${td(src.school||'—')}${td('<strong>Gender</strong>')}${td(src.gender||'—')}</tr>
         <tr>${td('<strong>Diagnoses</strong>')}<td colspan="3" style="padding:5px 8px;border:1px solid #ccc;font-size:11px">${o.diagnoses||'—'}</td></tr>
