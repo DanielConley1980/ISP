@@ -4100,17 +4100,22 @@ function openStudentGR(arborId) {
   // Stats
   const stats = getGRStats(arborId);
 
-  // Attendance — card row
-  const attNow = parseFloat(s && (s['Present'] || s['Attendance'] || '')) || null;
-  const attPrev = parseFloat(s && (s['Attendance Last Term'] || s['Last Term Attendance'] || s['Present Last Term'] || '')) || null;
+  // Log sheet columns to console so mismatches can be diagnosed
+  if (s) console.log('[GR] Sheet columns for', studentName, ':', Object.keys(s).join(', '));
+
+  // Attendance — card row. Try sheet columns then fall back to ISP record.
+  const _attRaw = s ? (s['Present'] || s['Attendance %'] || s['Attendance'] || s['attendance'] || s['% Attendance'] || '') : '';
+  const _attFromISP = ispRec ? (ispRec.overview?.attendance || '') : '';
+  const attNow = (() => { const n = parseFloat(_attRaw) || parseFloat(_attFromISP); return (n && n > 0) ? n : null; })();
+  const attPrev = (() => { if (!s) return null; const n = parseFloat(s['Attendance Last Term'] || s['Last Term Attendance'] || s['Present Last Term'] || s['Prev Attendance'] || ''); return (n && n > 0) ? n : null; })();
   let attStatHtml = '';
   if (attNow !== null) {
     const attColor = attNow < 85 ? '#c0392b' : attNow < 90 ? '#e67e22' : '#2e7d32';
     let attSub = '';
     if (attPrev !== null) {
       const diff = (attNow - attPrev).toFixed(1);
-      const arrow = diff >= 0 ? '↑' : '↓';
-      attSub = `<div class="gr-hdr-stat-sub" style="color:${diff >= 0 ? '#2e7d32' : '#c0392b'}">${arrow}${Math.abs(diff)}% vs last term</div>`;
+      const arrow = Number(diff) >= 0 ? '↑' : '↓';
+      attSub = `<div class="gr-hdr-stat-sub" style="color:${Number(diff) >= 0 ? '#2e7d32' : '#c0392b'}">${arrow}${Math.abs(diff)}% vs last term</div>`;
     }
     attStatHtml = `<div class="gr-hdr-stat">
       <div class="gr-hdr-stat-label">Attendance</div>
@@ -4119,14 +4124,16 @@ function openStudentGR(arborId) {
     </div>`;
   }
 
-  // Suspensions — card row
-  const susNow = s ? parseInt(s['Suspensions this Year'] || s['Suspensions This Year'] || '') : NaN;
-  const susPrev = s ? parseInt(s['Suspensions Last Year'] || s['Suspensions Previous Year'] || '') : NaN;
+  // Suspensions — card row. Try multiple column name variants.
+  const _susRaw = s ? (s['Suspensions this Year'] || s['Suspensions This Year'] || s['Suspensions'] || s['suspensions'] || '') : '';
+  const susNow = (() => { const n = parseInt(_susRaw); return isNaN(n) ? null : n; })();
+  const _susPrevRaw = s ? (s['Suspensions Last Year'] || s['Suspensions Previous Year'] || s['Prev Suspensions'] || '') : '';
+  const susPrev = (() => { const n = parseInt(_susPrevRaw); return isNaN(n) ? null : n; })();
   let susStatHtml = '';
-  if (!isNaN(susNow)) {
+  if (susNow !== null) {
     const susColor = susNow > 2 ? '#c0392b' : susNow > 0 ? '#e67e22' : '#2e7d32';
     let susSub = '';
-    if (!isNaN(susPrev)) {
+    if (susPrev !== null) {
       const diff = susNow - susPrev;
       const arrow = diff > 0 ? `↑ +${diff}` : diff < 0 ? `↓ ${diff}` : '→ no change';
       susSub = `<div class="gr-hdr-stat-sub" style="color:${diff > 0 ? '#c0392b' : diff < 0 ? '#2e7d32' : 'var(--muted)'}">${arrow} vs last year</div>`;
