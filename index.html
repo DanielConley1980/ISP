@@ -4103,12 +4103,12 @@ function openStudentGR(arborId) {
 
   const rec = state.grData[arborId];
 
-  // Get student meta
+  // Get student meta — sheet first, then ISP record, then GR record
   const s = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(arborId));
   const ispRec = state.isps.find(i => String(i.arborId) === String(arborId));
   const studentName = rec.studentName || (s ? s['Pupil Name'] : (ispRec ? ispRec.name : arborId));
-  const year = s ? (s['NC Year']||'') : (ispRec ? ispRec.year : '');
-  const form = s ? (s['Form']||'') : (ispRec ? ispRec.form : '');
+  const year = (s ? sheetVal(s,'nc year','year group','year') : '') || (ispRec ? ispRec.year : '') || rec.year || '';
+  const form = (s ? sheetVal(s,'form','form group','tutor group','class') : '') || (ispRec ? ispRec.form : '') || rec.form || '';
 
   const highestTierIdx = getStudentHighestTier(arborId);
   const highestTierBadge = highestTierIdx === -1
@@ -4118,48 +4118,43 @@ function openStudentGR(arborId) {
   // Stats
   const stats = getGRStats(arborId);
 
-  // Attendance — card row
+  // Attendance — always show, use sheet → ISP record → "—"
   const _attRaw = sheetVal(s, 'present', 'attendance %', 'attendance', '% attendance', 'att');
   const _attFromISP = ispRec ? (ispRec.overview?.attendance || '') : '';
   const attNow = (() => { const n = parseFloat(_attRaw) || parseFloat(_attFromISP); return (n && n > 0) ? n : null; })();
   const attPrev = (() => { const n = parseFloat(sheetVal(s, 'attendance last term', 'last term attendance', 'present last term', 'prev attendance', 'previous attendance')); return (n && n > 0) ? n : null; })();
-  let attStatHtml = '';
-  if (attNow !== null) {
-    const attColor = attNow < 85 ? '#c0392b' : attNow < 90 ? '#e67e22' : '#2e7d32';
-    let attSub = '';
-    if (attPrev !== null) {
-      const diff = (attNow - attPrev).toFixed(1);
-      const arrow = Number(diff) >= 0 ? '↑' : '↓';
-      attSub = `<div class="gr-hdr-stat-sub" style="color:${Number(diff) >= 0 ? '#2e7d32' : '#c0392b'}">${arrow}${Math.abs(diff)}% vs last term</div>`;
-    }
-    attStatHtml = `<div class="gr-hdr-stat">
-      <div class="gr-hdr-stat-label">Attendance</div>
-      <div class="gr-hdr-stat-val" style="color:${attColor}">${attNow}%</div>
-      ${attSub}
-    </div>`;
+  const attColor = attNow === null ? 'var(--muted)' : attNow < 85 ? '#c0392b' : attNow < 90 ? '#e67e22' : '#2e7d32';
+  let attSub = '';
+  if (attNow !== null && attPrev !== null) {
+    const diff = (attNow - attPrev).toFixed(1);
+    const arrow = Number(diff) >= 0 ? '↑' : '↓';
+    attSub = `<div class="gr-hdr-stat-sub" style="color:${Number(diff) >= 0 ? '#2e7d32' : '#c0392b'}">${arrow}${Math.abs(diff)}% vs last term</div>`;
   }
+  const attStatHtml = `<div class="gr-hdr-stat">
+    <div class="gr-hdr-stat-label">Attendance</div>
+    <div class="gr-hdr-stat-val" style="color:${attColor}">${attNow !== null ? attNow + '%' : '—'}</div>
+    ${attSub}
+  </div>`;
 
-  // Suspensions — card row
+  // Suspensions — always show
   const susNow = (() => { const n = parseInt(sheetVal(s, 'suspensions this year', 'suspensions')); return isNaN(n) ? null : n; })();
   const susPrev = (() => { const n = parseInt(sheetVal(s, 'suspensions last year', 'suspensions previous year', 'prev suspensions')); return isNaN(n) ? null : n; })();
-  let susStatHtml = '';
-  if (susNow !== null) {
-    const susColor = susNow > 2 ? '#c0392b' : susNow > 0 ? '#e67e22' : '#2e7d32';
-    let susSub = '';
-    if (susPrev !== null) {
-      const diff = susNow - susPrev;
-      const arrow = diff > 0 ? `↑ +${diff}` : diff < 0 ? `↓ ${diff}` : '→ no change';
-      susSub = `<div class="gr-hdr-stat-sub" style="color:${diff > 0 ? '#c0392b' : diff < 0 ? '#2e7d32' : 'var(--muted)'}">${arrow} vs last year</div>`;
-    }
-    susStatHtml = `<div class="gr-hdr-stat">
-      <div class="gr-hdr-stat-label">Suspensions this year</div>
-      <div class="gr-hdr-stat-val" style="color:${susColor}">${susNow}</div>
-      ${susSub}
-    </div>`;
+  const susColor = susNow === null ? 'var(--muted)' : susNow > 2 ? '#c0392b' : susNow > 0 ? '#e67e22' : '#2e7d32';
+  let susSub = '';
+  if (susNow !== null && susPrev !== null) {
+    const diff = susNow - susPrev;
+    const arrow = diff > 0 ? `↑ +${diff}` : diff < 0 ? `↓ ${diff}` : '→ no change';
+    susSub = `<div class="gr-hdr-stat-sub" style="color:${diff > 0 ? '#c0392b' : diff < 0 ? '#2e7d32' : 'var(--muted)'}">${arrow} vs last year</div>`;
+  } else if (susNow === null && !s) {
+    susSub = `<div class="gr-hdr-stat-sub" style="color:var(--muted)">Connect sheet to load</div>`;
   }
+  const susStatHtml = `<div class="gr-hdr-stat">
+    <div class="gr-hdr-stat-label">Suspensions this year</div>
+    <div class="gr-hdr-stat-val" style="color:${susColor}">${susNow !== null ? susNow : '—'}</div>
+    ${susSub}
+  </div>`;
 
-  const dataRowHtml = (attStatHtml || susStatHtml)
-    ? `<div class="gr-hdr-data-row">${attStatHtml}${susStatHtml}</div>` : '';
+  const dataRowHtml = `<div class="gr-hdr-data-row">${attStatHtml}${susStatHtml}</div>`;
 
   const recentChip = stats.mostRecent
     ? `<span class="gr-stat-chip recent" style="flex:1;min-width:0;white-space:normal">🕐 Most recent: <strong>${stats.mostRecent.startDate}</strong> — ${stats.mostRecent.label}</span>`
