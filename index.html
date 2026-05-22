@@ -723,27 +723,21 @@
           <thead>
             <tr id="dash-thead">
               <th data-col="name"    class="sortable">Student <span class="sort-icon">↕</span></th>
-              <th data-col="arborId" class="sortable">UPN <span class="sort-icon">↕</span></th>
               <th data-col="year"    class="sortable">Year <span class="sort-icon">↕</span></th>
               <th data-col="school"  class="sortable">School <span class="sort-icon">↕</span></th>
               <th data-col="sen"     class="sortable">SEN <span class="sort-icon">↕</span></th>
-              <th data-col="grTier" class="sortable">GR Tier <span class="sort-icon">↕</span></th>
-              <th>Areas</th>
+              <th data-col="grTier" class="sortable">Graduated Approach Tier <span class="sort-icon">↕</span></th>
               <th data-col="staff"   class="sortable">Staff <span class="sort-icon">↕</span></th>
-              <th data-col="updated" class="sortable">Last updated <span class="sort-icon">↕</span></th>
               <th data-col="lastEdited" class="sortable">Last edited <span class="sort-icon">↕</span></th>
               <th></th>
             </tr>
             <tr id="dash-filter-row">
               <th></th>
-              <th></th>
               <th><select data-col="year" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option>Year 7</option><option>Year 8</option><option>Year 9</option><option>Year 10</option><option>Year 11</option></select></th>
               <th><input type="text" placeholder="Filter…" data-col="school"  oninput="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)" /></th>
               <th><select data-col="sen" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option value="M">M</option><option value="K">K</option><option value="E">E</option></select></th>
               <th><select data-col="grTier" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option></select></th>
-              <th></th>
               <th><input type="text" placeholder="Filter…" data-col="staff"   oninput="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)" /></th>
-              <th></th>
               <th></th>
               <th></th>
             </tr>
@@ -1862,15 +1856,12 @@ function renderDashboard() {
           <strong>${isp.name}</strong>
         </div>
       </td>
-      <td style="font-family:monospace;font-size:13px">${isp.arborId}</td>
       <td>${isp.year}</td>
       <td style="font-size:13px;color:var(--muted)">${isp.school||'—'}</td>
       <td>${(() => { const c = senCode(isp); const col = c==='E'?'#b71c1c':c==='K'?'var(--teal)':'var(--muted)'; return c ? `<span style="font-size:13px;font-weight:800;color:${col}">${c}</span>` : '<span style="color:var(--subtle)">—</span>'; })()}</td>
       <td>${(() => { const t = getStudentHighestTier(isp.arborId); if (t===-1) return '<span style="color:var(--subtle)">—</span>'; const tier=GRAD_TIERS[t]; return `<span class="gr-tier-badge" style="background:${tier.bg};color:${tier.color};font-size:11px">${tier.label}</span>`; })()}</td>
-      <td style="font-size:12px;color:var(--muted);max-width:150px">${areaLabels.join(', ')||'—'}</td>
       <td style="font-size:13px">${isp.staff||'—'}</td>
-      <td style="font-size:13px;color:var(--muted)">${isp.updated||'—'}${apdrCount?` <span class="badge badge-blue" style="margin-left:4px">${apdrCount} APDR</span>`:''}</td>
-      <td style="font-size:13px;color:var(--muted);white-space:nowrap">${fmtLastEdited(isp.lastEdited)}</td>
+      <td style="font-size:13px;color:var(--muted);white-space:nowrap">${fmtLastEdited(isp.lastEdited)}${apdrCount?` <span class="badge badge-blue" style="margin-left:4px">${apdrCount} APDR</span>`:''}</td>
       <td onclick="event.stopPropagation()">
         <div style="display:flex;gap:6px;align-items:center">
           <button title="Edit" onclick="editISP(${idx})" style="background:none;border:1px solid var(--border);border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px;color:var(--muted)" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='none'">
