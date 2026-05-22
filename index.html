@@ -1858,7 +1858,7 @@ function renderDashboard() {
       </td>
       <td>${isp.year}</td>
       <td style="font-size:13px;color:var(--muted)">${isp.school||'—'}</td>
-      <td>${(() => { const c = senCode(isp); const col = c==='E'?'#b71c1c':c==='K'?'var(--teal)':'var(--muted)'; return c ? `<span style="font-size:13px;font-weight:800;color:${col}">${c}</span>` : '<span style="color:var(--subtle)">—</span>'; })()}</td>
+      <td>${(() => { const c = senCode(isp); const col = c==='E'?'#b71c1c':c==='K'?'#b8860b':'#2e7d32'; return c ? `<span style="font-size:13px;font-weight:800;color:${col}">${c}</span>` : '<span style="color:var(--subtle)">—</span>'; })()}</td>
       <td>${(() => { const t = getStudentHighestTier(isp.arborId); if (t===-1) return '<span style="color:var(--subtle)">—</span>'; const tier=GRAD_TIERS[t]; return `<span class="gr-tier-badge" style="background:${tier.bg};color:${tier.color};font-size:11px">${tier.label}</span>`; })()}</td>
       <td style="font-size:13px">${isp.staff||'—'}</td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${fmtLastEdited(isp.lastEdited)}${apdrCount?` <span class="badge badge-blue" style="margin-left:4px">${apdrCount} APDR</span>`:''}</td>
