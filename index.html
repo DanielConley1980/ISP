@@ -3849,6 +3849,24 @@ async function postGRToSheet(arborId) {
   await fetch(`${state.sheetUrl}?action=commitGR&id=${encodeURIComponent(arborId)}`);
 }
 
+// Case-insensitive column lookup across the sheet student object.
+// Tries each name as an exact match (case-insensitive), then as a substring match.
+function sheetVal(s, ...names) {
+  if (!s) return '';
+  const keys = Object.keys(s);
+  for (const name of names) {
+    const nl = name.toLowerCase();
+    const exact = keys.find(k => k.toLowerCase() === nl);
+    if (exact !== undefined && s[exact] !== '' && s[exact] !== null && s[exact] !== undefined) return String(s[exact]);
+  }
+  for (const name of names) {
+    const nl = name.toLowerCase();
+    const partial = keys.find(k => k.toLowerCase().includes(nl));
+    if (partial !== undefined && s[partial] !== '' && s[partial] !== null && s[partial] !== undefined) return String(s[partial]);
+  }
+  return '';
+}
+
 function getStudentHighestTier(arborId) {
   const rec = state.grData[arborId];
   if (!rec) return -1;
@@ -4100,14 +4118,11 @@ function openStudentGR(arborId) {
   // Stats
   const stats = getGRStats(arborId);
 
-  // Log sheet columns to console so mismatches can be diagnosed
-  if (s) console.log('[GR] Sheet columns for', studentName, ':', Object.keys(s).join(', '));
-
-  // Attendance — card row. Try sheet columns then fall back to ISP record.
-  const _attRaw = s ? (s['Present'] || s['Attendance %'] || s['Attendance'] || s['attendance'] || s['% Attendance'] || '') : '';
+  // Attendance — card row
+  const _attRaw = sheetVal(s, 'present', 'attendance %', 'attendance', '% attendance', 'att');
   const _attFromISP = ispRec ? (ispRec.overview?.attendance || '') : '';
   const attNow = (() => { const n = parseFloat(_attRaw) || parseFloat(_attFromISP); return (n && n > 0) ? n : null; })();
-  const attPrev = (() => { if (!s) return null; const n = parseFloat(s['Attendance Last Term'] || s['Last Term Attendance'] || s['Present Last Term'] || s['Prev Attendance'] || ''); return (n && n > 0) ? n : null; })();
+  const attPrev = (() => { const n = parseFloat(sheetVal(s, 'attendance last term', 'last term attendance', 'present last term', 'prev attendance', 'previous attendance')); return (n && n > 0) ? n : null; })();
   let attStatHtml = '';
   if (attNow !== null) {
     const attColor = attNow < 85 ? '#c0392b' : attNow < 90 ? '#e67e22' : '#2e7d32';
@@ -4124,11 +4139,9 @@ function openStudentGR(arborId) {
     </div>`;
   }
 
-  // Suspensions — card row. Try multiple column name variants.
-  const _susRaw = s ? (s['Suspensions this Year'] || s['Suspensions This Year'] || s['Suspensions'] || s['suspensions'] || '') : '';
-  const susNow = (() => { const n = parseInt(_susRaw); return isNaN(n) ? null : n; })();
-  const _susPrevRaw = s ? (s['Suspensions Last Year'] || s['Suspensions Previous Year'] || s['Prev Suspensions'] || '') : '';
-  const susPrev = (() => { const n = parseInt(_susPrevRaw); return isNaN(n) ? null : n; })();
+  // Suspensions — card row
+  const susNow = (() => { const n = parseInt(sheetVal(s, 'suspensions this year', 'suspensions')); return isNaN(n) ? null : n; })();
+  const susPrev = (() => { const n = parseInt(sheetVal(s, 'suspensions last year', 'suspensions previous year', 'prev suspensions')); return isNaN(n) ? null : n; })();
   let susStatHtml = '';
   if (susNow !== null) {
     const susColor = susNow > 2 ? '#c0392b' : susNow > 0 ? '#e67e22' : '#2e7d32';
