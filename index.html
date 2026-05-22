@@ -4030,6 +4030,11 @@ function saveGRIntervention(arborId, kid, isCustom) {
   const endDate = endEl ? endEl.value : '';
   const notes = notesEl ? notesEl.value : '';
 
+  if (endDate && !startDate) {
+    alert('Please add a start date before setting an end date.');
+    return;
+  }
+
   // Recover actual key from the row's data-key attribute
   const rowEl = document.getElementById(`gr-introw-${kid}-${arborId}`);
   if (!rowEl) return;
@@ -4090,6 +4095,22 @@ function saveGRIntervention(arborId, kid, isCustom) {
     const total = tier.columns.length + customEntries.length;
     progressEl.textContent = `${recorded} / ${total} recorded`;
   });
+
+  // Collapse panel and flash "Saved"
+  const panel = document.getElementById(`gr-detpanel-${kid}-${arborId}`);
+  const saveBtn = panel ? panel.querySelector('.btn-primary') : null;
+  if (saveBtn) {
+    const orig = saveBtn.textContent;
+    saveBtn.textContent = 'Saved ✓';
+    saveBtn.disabled = true;
+    setTimeout(() => {
+      if (panel) panel.style.display = 'none';
+      const detBtn = document.getElementById(`gr-detbtn-${kid}-${arborId}`);
+      if (detBtn) detBtn.textContent = '&#9658; Details';
+      saveBtn.textContent = orig;
+      saveBtn.disabled = false;
+    }, 800);
+  }
 }
 
 function addCustomIntervention(arborId, tierId) {
