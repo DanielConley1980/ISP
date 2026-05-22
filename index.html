@@ -3874,8 +3874,21 @@ function findSheetStudent(idVal) {
   );
 }
 
+// Find a GR record for any student id — tries direct key, then resolves
+// UPN↔ArborID mismatches via the sheet, then scans record arborId fields
+function findGRRecord(idVal) {
+  const id = String(idVal);
+  if (state.grData[id]) return state.grData[id];
+  const sheet = findSheetStudent(id);
+  if (sheet) {
+    const alt = studentKey(sheet);
+    if (state.grData[alt]) return state.grData[alt];
+  }
+  return Object.values(state.grData).find(r => String(r.arborId) === id) || null;
+}
+
 function getStudentHighestTier(arborId) {
-  const rec = state.grData[arborId];
+  const rec = findGRRecord(arborId);
   if (!rec) return -1;
   for (let t = GRAD_TIERS.length - 1; t >= 0; t--) {
     const tier = GRAD_TIERS[t];
@@ -3892,7 +3905,7 @@ function getStudentHighestTier(arborId) {
 }
 
 function getGRStats(arborId) {
-  const rec = state.grData[arborId];
+  const rec = findGRRecord(arborId);
   const result = { total: 0, open: 0, mostRecent: null };
   if (!rec) return result;
   const allIntv = [];
@@ -4050,7 +4063,7 @@ function filterGRCards() {
 }
 
 function buildGRSummaryHtml(arborId) {
-  const rec = state.grData[String(arborId)];
+  const rec = findGRRecord(arborId);
   const sections = [];
   if (rec) {
     GRAD_TIERS.forEach(tier => {
@@ -4086,7 +4099,7 @@ function buildGRSummaryHtml(arborId) {
   return `<div class="gr-isp-section">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Graduated Response — Interventions</div>
-      <button class="btn-secondary" style="font-size:11px;padding:3px 10px" onclick="showScreen('screen-graduated');renderGRScreen();openStudentGR('${arborId}')">✏ Edit in GR</button>
+      <button class="btn-secondary" style="font-size:11px;padding:3px 10px" onclick="showScreen('screen-graduated');renderGRScreen();openStudentGR('${rec.arborId}')">✏ Edit in GR</button>
     </div>
     ${sections.join('')}
   </div>`;
