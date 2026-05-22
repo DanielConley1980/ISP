@@ -1216,13 +1216,27 @@ function selectStudent(arborId) {
   // Populate form fields
   const formFields = document.getElementById('arbor-form-fields');
   formFields.style.display = 'block';
+  // Normalise DOB to YYYY-MM-DD for the date input
+  const rawDob = s['Date of Birth'] || s['DOB'] || s['Dob'] || s['dob'] || '';
+  let dobIso = '';
+  if (rawDob) {
+    const d = new Date(rawDob);
+    if (!isNaN(d)) {
+      dobIso = d.toISOString().slice(0, 10);
+    } else {
+      // Try DD/MM/YYYY
+      const m = String(rawDob).match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})$/);
+      if (m) dobIso = `${m[3].length===2?'20'+m[3]:m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    }
+  }
+  const school = s['School'] || s['School Name'] || s['School/Site'] || s['Site'] || '';
   const populate = {
     'f-fname': fname,
     'f-lname': lname,
-    'f-dob': '',
+    'f-dob': dobIso,
     'f-year': s['NC Year'] || '',
     'f-form': s['Form'] || '',
-    'f-school': state.user?.school || '',
+    'f-school': school,
   };
   Object.entries(populate).forEach(([id, val]) => {
     const el = document.getElementById(id);
