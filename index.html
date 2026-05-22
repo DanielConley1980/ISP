@@ -581,10 +581,17 @@
     border-radius: var(--radius-lg); margin-bottom: 1rem; overflow: hidden;
   }
   .gr-quick-close-hdr {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 1.25rem; background: #fff3e0; border-bottom: 1px solid #f0c080;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    padding: 12px 1.25rem; background: #fff3e0; cursor: pointer; user-select: none;
   }
-  .gr-quick-close-hdr span { font-size: 13px; font-weight: 700; color: #b7510c; }
+  .gr-quick-close-hdr:hover { background: #ffe8c8; }
+  .gr-quick-close-hdr-text { flex: 1; }
+  .gr-quick-close-hdr-text strong { font-size: 13px; font-weight: 700; color: #b7510c; display: block; margin-bottom: 2px; }
+  .gr-quick-close-hdr-text span { font-size: 12px; color: #c87020; }
+  .gr-quick-close-body { border-top: 1px solid #f0c080; display: none; }
+  .gr-quick-close-body.open { display: block; }
+  .gr-quick-close-chevron { font-size: 16px; color: #b7510c; transition: transform 0.2s; flex-shrink: 0; margin-top: 1px; }
+  .gr-quick-close-chevron.open { transform: rotate(90deg); }
   .gr-open-item {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 1.25rem; border-bottom: 1px solid #f5d9b0; font-size: 13px;
@@ -4205,13 +4212,33 @@ function renderQuickClosePanel(arborId, rec) {
       <button class="btn-secondary close-btn" onclick="quickCloseIntervention('${arborId}','${kid}',${item.isCustom})">Close</button>
     </div>`;
   }).join('');
+  const panelId = `qc-body-${arborId}`;
+  const chevId = `qc-chev-${arborId}`;
   return `<div class="gr-quick-close">
-    <div class="gr-quick-close-hdr">
-      <span>⚠ ${openItems.length} open intervention${openItems.length !== 1 ? 's' : ''} — no end date recorded</span>
-      <button class="btn-secondary" style="font-size:12px;padding:4px 12px" onclick="quickCloseAll('${arborId}')">Set all to today</button>
+    <div class="gr-quick-close-hdr" onclick="toggleQuickClose('${arborId}')">
+      <div class="gr-quick-close-hdr-text">
+        <strong>⚠ This student has ${openItems.length} open intervention${openItems.length !== 1 ? 's' : ''}.</strong>
+        <span>Add end dates quickly here to close them</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="gr-quick-close-chevron" id="${chevId}">›</span>
+      </div>
     </div>
-    ${rows}
+    <div class="gr-quick-close-body" id="${panelId}">
+      <div style="padding:8px 1.25rem;background:#fff8f0;border-bottom:1px solid #f0c080;display:flex;justify-content:flex-end">
+        <button class="btn-secondary" style="font-size:12px;padding:4px 12px" onclick="quickCloseAll('${arborId}')">Set all to today</button>
+      </div>
+      ${rows}
+    </div>
   </div>`;
+}
+
+function toggleQuickClose(arborId) {
+  const body = document.getElementById(`qc-body-${arborId}`);
+  const chev = document.getElementById(`qc-chev-${arborId}`);
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open', open);
 }
 
 function quickCloseIntervention(arborId, kid, isCustom) {
