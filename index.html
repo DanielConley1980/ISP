@@ -4042,7 +4042,10 @@ function buildGRSummaryHtml(arborId) {
   }
   if (!sections.length) return '';
   return `<div class="gr-isp-section">
-    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Graduated Response — Interventions</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em">Graduated Response — Interventions</div>
+      <button class="btn-secondary" style="font-size:11px;padding:3px 10px" onclick="showScreen('screen-graduated');renderGRScreen();openStudentGR('${arborId}')">✏ Edit in GR</button>
+    </div>
     ${sections.join('')}
   </div>`;
 }
