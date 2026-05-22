@@ -1103,12 +1103,14 @@ async function postToSheet(isp) {
   const badge = document.getElementById('sheet-badge');
   if (badge) { badge.textContent = '↑ Syncing…'; badge.style.color = '#e67e22'; }
   try {
-    // mode: no-cors avoids CORS/redirect issues with Apps Script POST
-    // (response is opaque but the write still happens on the server)
+    // Use URLSearchParams so Content-Type is application/x-www-form-urlencoded
+    // — a "simple" type that works cross-origin with Apps Script without preflight
+    const form = new URLSearchParams();
+    form.set('payload', JSON.stringify(isp));
     await fetch(state.sheetUrl, {
       method: 'POST',
       mode: 'no-cors',
-      body: JSON.stringify({ isp }),
+      body: form,
     });
     if (badge) {
       badge.textContent = '✓ Synced to sheet';
@@ -3650,52 +3652,75 @@ function buildISPPDF(src) {
       <details style="margin-bottom:1.25rem">
         <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">📋 Step 1 — Paste this script into your sheet's Apps Script editor</summary>
         <div style="margin-top:8px;background:#1e1e2e;border-radius:var(--radius);padding:1rem;overflow-x:auto">
-          <pre style="margin:0;font-size:11px;color:#cdd6f4;white-space:pre;font-family:monospace" id="apps-script-code">function doGet(e) {
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-  const [headers, ...rows] = sheet.getDataRange().getValues();
+          <pre style="margin:0;font-size:11px;color:#cdd6f4;white-space:pre;font-family:monospace" id="apps-script-code">// ── READ: returns all students + all ISPs ──────────────────────────
+function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  // Students from first sheet
+  const studentSheet = ss.getSheets()[0];
+  const [headers, ...rows] = studentSheet.getDataRange().getValues();
   const students = rows.map(row => {
     const obj = {};
     headers.forEach((h, i) => { if (h) obj[String(h).trim()] = row[i]; });
     return obj;
   }).filter(s => s['Arbor ID']);
-  // Return ISPs stored in ISP_Data column
-  const isps = students
-    .filter(s => s['ISP_Data'])
-    .map(s => { try { return JSON.parse(s['ISP_Data']); } catch(e) { return null; } })
-    .filter(Boolean);
+
+  // ISPs from dedicated ISP_Data tab (created automatically by doPost)
+  let isps = [];
+  const ispSheet = ss.getSheetByName('ISP_Data');
+  if (ispSheet && ispSheet.getLastRow() > 1) {
+    const ispRows = ispSheet.getDataRange().getValues();
+    const dataCol = ispRows[0].indexOf('data');
+    if (dataCol > -1) {
+      isps = ispRows.slice(1)
+        .map(r => { try { return JSON.parse(r[dataCol]); } catch(e) { return null; } })
+        .filter(Boolean);
+    }
+  }
+
   return json({ students, isps });
 }
 
+// ── WRITE: upserts one ISP into the ISP_Data tab ──────────────────
 function doPost(e) {
   try {
-    const body = e.postData ? e.postData.contents : (e.parameter.data || '{}');
-    const { isp } = JSON.parse(body);
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0].map(h => String(h).trim());
-    const arborCol = headers.indexOf('Arbor ID');
-    const rowIdx = data.findIndex((r, i) => i > 0 && String(r[arborCol]) === String(isp.arborId));
-    if (rowIdx === -1) return json({ error: 'Student not found' });
-    const cols = {
-      ISP_Status: isp.status || 'Active',
-      ISP_Level: isp.level || '',
-      ISP_Areas: (isp.areas || []).join(', '),
-      ISP_Created: (isp.overview && isp.overview.created) || '',
-      ISP_Reviewed: (isp.overview && isp.overview.reviewed) || '',
-      ISP_Staff: (isp.overview && isp.overview.staff) || '',
-      ISP_EHCP: (isp.health && isp.health.ehcp) || '',
-      ISP_Diagnoses: (isp.overview && isp.overview.diagnoses) || '',
-      ISP_Data: JSON.stringify(isp),
-    };
-    Object.keys(cols).forEach(col => {
-      if (!headers.includes(col)) {
-        sheet.getRange(1, headers.length + 1).setValue(col);
-        headers.push(col);
-      }
-    });
-    Object.entries(cols).forEach(([col, val]) => {
-      sheet.getRange(rowIdx + 1, headers.indexOf(col) + 1).setValue(val);
-    });
+    // URLSearchParams body → e.parameter.payload
+    const isp = JSON.parse(e.parameter.payload || '{}');
+    if (!isp.id) return json({ error: 'No ISP id' });
+
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+    // Get or create ISP_Data sheet
+    let ispSheet = ss.getSheetByName('ISP_Data');
+    if (!ispSheet) {
+      ispSheet = ss.insertSheet('ISP_Data');
+      ispSheet.getRange(1, 1, 1, 6).setValues([[
+        'id', 'arborId', 'name', 'level', 'updated', 'data'
+      ]]);
+    }
+
+    const existing = ispSheet.getDataRange().getValues();
+    const idCol = existing[0].indexOf('id');
+    let rowIdx = -1;
+    for (let i = 1; i < existing.length; i++) {
+      if (String(existing[i][idCol]) === String(isp.id)) { rowIdx = i + 1; break; }
+    }
+
+    const rowData = [
+      isp.id,
+      isp.arborId || '',
+      isp.name || '',
+      isp.level || '',
+      isp.updated || '',
+      JSON.stringify(isp),
+    ];
+
+    if (rowIdx === -1) {
+      ispSheet.appendRow(rowData);
+    } else {
+      ispSheet.getRange(rowIdx, 1, 1, rowData.length).setValues([rowData]);
+    }
+
     return json({ success: true });
   } catch(err) { return json({ error: err.toString() }); }
 }
