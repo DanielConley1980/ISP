@@ -1068,16 +1068,18 @@ async function loadSheetData() {
     const r = await fetch(state.sheetUrl, { cache: 'no-store' });
     const d = await r.json();
     state.sheetStudents = d.students || [];
-    // Load ISPs from sheet — sheet is source of truth when connected
     if (d.isps && d.isps.length) {
-      state.isps = d.isps;
+      // Merge: sheet wins for any ISP that exists in both; keep local-only ISPs too
+      const sheetIds = new Set(d.isps.map(i => i.id));
+      const localOnly = state.isps.filter(i => !sheetIds.has(i.id));
+      state.isps = [...d.isps, ...localOnly];
       saveISPs();
       renderDashboard();
     }
     const n = state.sheetStudents.length;
     const ni = (d.isps || []).length;
     const badge = document.getElementById('sheet-badge');
-    if (badge) badge.textContent = `● ${n} students · ${ni} ISPs`;
+    if (badge) badge.textContent = `● ${n} students · ${ni} ISPs loaded`;
     if (badge) badge.style.color = 'var(--teal)';
   } catch(e) {
     const badge = document.getElementById('sheet-badge');
@@ -1088,7 +1090,12 @@ async function loadSheetData() {
 
 async function pushAllISPsToSheet() {
   if (!state.sheetUrl || !state.isps.length) return;
+  const btn = document.getElementById('push-all-btn');
+  if (btn) { btn.textContent = '↑ Pushing…'; btn.disabled = true; }
   await Promise.all(state.isps.map(isp => postToSheet(isp)));
+  if (btn) { btn.textContent = `✓ ${state.isps.length} ISPs pushed`; btn.disabled = false; }
+  // Reload from sheet to confirm
+  await loadSheetData();
 }
 
 async function postToSheet(isp) {
@@ -1119,6 +1126,8 @@ async function postToSheet(isp) {
 function showSheetSettings() {
   document.getElementById('sheet-modal').style.display = 'flex';
   document.getElementById('sheet-url-input').value = state.sheetUrl || '';
+  const c = document.getElementById('push-isp-count');
+  if (c) c.textContent = state.isps.length;
 }
 
 function closeSheetSettings() {
@@ -3718,6 +3727,14 @@ function json(data) {
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem">
         <button id="test-sheet-btn" class="btn-secondary" style="font-size:13px" onclick="testSheetConnection()">✓ Test connection</button>
         <button class="btn-primary" onclick="saveSheetSettings()">Save and connect</button>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--border);margin:1.25rem 0" />
+
+      <div style="background:var(--teal-light);border:1px solid rgba(15,110,86,0.3);border-radius:var(--radius);padding:1rem 1.25rem">
+        <div style="font-weight:700;font-size:14px;margin-bottom:4px">📤 Push all ISPs to sheet</div>
+        <p style="font-size:13px;color:var(--text);margin:0 0 10px">Write all <strong id="push-isp-count">0</strong> ISPs currently in this browser to the sheet. Do this once to move your data out of the browser and into the spreadsheet permanently.</p>
+        <button id="push-all-btn" class="btn-primary" onclick="pushAllISPsToSheet()" style="font-size:13px">↑ Push all ISPs to sheet now</button>
       </div>
 
       <div style="margin-top:1rem;padding:10px 14px;background:#FFF8E7;border:1px solid #E8C84A;border-radius:var(--radius);font-size:12px;color:#7A5C00">
