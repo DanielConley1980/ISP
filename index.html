@@ -717,13 +717,13 @@
       <div class="table-card">
         <div class="table-card-header">
           <h2>All plans</h2>
-          <input type="text" id="dash-search" placeholder="Search name, Arbor ID, year, staff…" style="padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;width:260px" oninput="applyFilters()" />
+          <input type="text" id="dash-search" placeholder="Search name, UPN, year, staff…" style="padding:7px 12px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;width:260px" oninput="applyFilters()" />
         </div>
         <table id="isp-table">
           <thead>
             <tr id="dash-thead">
               <th data-col="name"    class="sortable">Student <span class="sort-icon">↕</span></th>
-              <th data-col="arborId" class="sortable">Arbor ID <span class="sort-icon">↕</span></th>
+              <th data-col="arborId" class="sortable">UPN <span class="sort-icon">↕</span></th>
               <th data-col="year"    class="sortable">Year <span class="sort-icon">↕</span></th>
               <th data-col="school"  class="sortable">School <span class="sort-icon">↕</span></th>
               <th data-col="level"   class="sortable">Level <span class="sort-icon">↕</span></th>
@@ -787,8 +787,8 @@
               <div id="student-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);z-index:99;box-shadow:0 4px 12px rgba(0,0,0,0.12);max-height:320px;overflow-y:auto"></div>
             </div>
             <div style="margin-top:10px;font-size:12px;color:var(--muted)">
-              or search by Arbor ID:
-              <input type="text" id="arbor-id-input" placeholder="e.g. 48291" maxlength="10"
+              or search by UPN:
+              <input type="text" id="arbor-id-input" placeholder="Enter UPN…" maxlength="10"
                 style="font-size:13px;font-weight:600;letter-spacing:1px;width:120px;margin-left:6px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)" />
               <button class="btn-secondary" onclick="lookupArbor()" style="font-size:12px;padding:4px 10px;margin-left:4px">Look up</button>
             </div>
@@ -1420,7 +1420,7 @@ function onStudentSearchInput() {
 }
 
 function selectStudent(arborId) {
-  const s = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(arborId));
+  const s = findSheetStudent(arborId);
   document.getElementById('student-autocomplete').style.display = 'none';
   if (!s) return;
 
@@ -1430,11 +1430,11 @@ function selectStudent(arborId) {
   const lname = parts.slice(1).join(' ') || '';
 
   document.getElementById('student-name-search').value = fullName;
-  state.student.arborId = String(s['Arbor ID']);
+  state.student.arborId = String(s['UPN'] || s['Arbor ID']);
 
   const banner = document.getElementById('found-banner');
   banner.style.display = 'block';
-  banner.innerHTML = `✓ Record found — <strong>${fullName}</strong> · Arbor ID ${s['Arbor ID']}`;
+  banner.innerHTML = `✓ Record found — <strong>${fullName}</strong> · UPN ${s['UPN'] || s['Arbor ID']}`;
 
   // Info card
   const pct = s['Present'] || '';
@@ -1899,14 +1899,14 @@ const ARBOR_DB = {
   "10010": { fullName:"Mia Johnson",     fname:"Mia",       lname:"Johnson",   year:"Year 8",  form:"8D",  diagnoses:"",            socialCare:"",    school:"Demo School", gender:"Female", attendance:"95" },
 };
 
-/* ── Arbor lookup — auto-populate, confirm only ── */
+/* ── UPN lookup — auto-populate, confirm only ── */
 function lookupArbor() {
   const val = document.getElementById('arbor-id-input').value.trim();
-  if (!val || val.length < 4) { alert('Please enter a valid Arbor ID (minimum 4 digits).'); return; }
+  if (!val || val.length < 4) { alert('Please enter a valid UPN (minimum 4 characters).'); return; }
   state.student.arborId = val;
 
   // Try to match in sheet students too
-  const sheetRec = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(val));
+  const sheetRec = findSheetStudent(val);
   if (sheetRec) { selectStudent(val); return; }
 
   const record = ARBOR_DB[val];
@@ -1916,7 +1916,7 @@ function lookupArbor() {
   if (record) {
     // Auto-populate all fields from database — read-only until "Edit details" clicked
     banner.style.display = 'block';
-    banner.textContent = `✓ Student record found for Arbor ID ${val}.`;
+    banner.textContent = `✓ Student record found — UPN ${val}.`;
     formFields.style.display = 'block';
     const populate = { 'f-fname': record.fname, 'f-lname': record.lname, 'f-dob': '', 'f-year': record.year, 'f-form': record.form, 'f-school': record.school || 'Demo School' };
     Object.entries(populate).forEach(([id, val]) => {
@@ -1932,7 +1932,7 @@ function lookupArbor() {
     state._prefill = { diagnoses: record.diagnoses, socialCare: record.socialCare };
   } else {
     banner.style.display = 'block';
-    banner.textContent = `⚠ No record found for Arbor ID ${val}. Please enter student details manually.`;
+    banner.textContent = `⚠ No record found for UPN ${val}. Please enter student details manually.`;
     formFields.style.display = 'block';
     ['f-fname','f-lname','f-dob','f-year','f-form','f-school'].forEach(id => { document.getElementById(id).value = ''; });
     state._prefill = null;
@@ -2464,7 +2464,7 @@ async function generateTargets() {
 
   const prompt = `You are an experienced SENDCo generating SMART targets for a student Individual Support Plan (ISP) in a UK school.
 
-Student: ${state.student.fullName}, ${state.student.year||''} ${state.student.form||''}, Arbor ID: ${state.student.arborId}
+Student: ${state.student.fullName}, ${state.student.year||''} ${state.student.form||''}, UPN: ${state.student.arborId}
 Diagnoses: ${state.formData.overview.diagnoses||'not specified'}
 Student summary: ${state.formData.summary||'not provided'}
 
@@ -2667,7 +2667,7 @@ Use the following data exactly:
 
 STUDENT DETAILS
 Name: ${state.student.fullName}
-Arbor ID: ${state.student.arborId}
+UPN: ${state.student.arborId}
 Year group / class: ${state.student.year} ${state.student.form}
 Date of birth: ${state.student.dob||'—'}
 School: ${state.student.school||'Demo School'}
@@ -2897,7 +2897,7 @@ function vsOverview(isp, idx) {
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">${isp.school||'—'} &nbsp;·&nbsp; Individual Support Plan</div>
           <div style="font-size:26px;font-weight:800;margin-bottom:4px;letter-spacing:-0.5px">${isp.name}</div>
-          <div style="font-size:13px;color:var(--muted)">Arbor <strong>${isp.arborId}</strong> &nbsp;·&nbsp; ${isp.year} ${isp.form} &nbsp;·&nbsp; DOB: ${isp.dob||'—'} &nbsp;·&nbsp; ${isp.gender||'—'}</div>
+          <div style="font-size:13px;color:var(--muted)">UPN <strong>${isp.arborId}</strong> &nbsp;·&nbsp; ${isp.year} ${isp.form} &nbsp;·&nbsp; DOB: ${isp.dob||'—'} &nbsp;·&nbsp; ${isp.gender||'—'}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <span class="badge ${isp.level==='Targeted Plus'?'badge-amber':'badge-teal'}" style="font-size:13px;padding:5px 14px">${isp.level}</span>
@@ -3651,7 +3651,7 @@ function renderISPPreview(idx) {
         <div>
           <div style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">${isp.school||'—'} · Teacher Summary</div>
           <div style="font-size:22px;font-weight:800;margin-bottom:3px">${isp.name}</div>
-          <div style="font-size:13px;color:var(--muted)">Arbor <strong>${isp.arborId}</strong> · ${isp.year} ${isp.form} · DOB: ${isp.dob||'—'} · ${isp.gender||'—'}</div>
+          <div style="font-size:13px;color:var(--muted)">UPN <strong>${isp.arborId}</strong> · ${isp.year} ${isp.form} · DOB: ${isp.dob||'—'} · ${isp.gender||'—'}</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
           <span style="font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px;${isp.level==='Targeted Plus'?'background:#FAEEDA;color:#854F0B':'background:var(--teal-light);color:var(--teal-dark)'}">${isp.level}</span>
@@ -3819,7 +3819,7 @@ function renderISPPreview(idx) {
 
 function seedGRFromSheet() {
   (state.sheetStudents || []).forEach(s => {
-    const aid = String(s['Arbor ID']);
+    const aid = studentKey(s);
     if (!state.grData[aid]) state.grData[aid] = { arborId: aid, studentName: s['Pupil Name']||'', interventions: {}, customInterventions: {} };
     const rec = state.grData[aid];
     GRAD_TIERS.forEach(tier => {
@@ -3865,6 +3865,18 @@ function sheetVal(s, ...names) {
     if (partial !== undefined && s[partial] !== '' && s[partial] !== null && s[partial] !== undefined) return String(s[partial]);
   }
   return '';
+}
+
+// Returns the preferred unique key for a sheet student row: UPN first, Arbor ID as fallback
+function studentKey(s) {
+  return String(s['UPN'] || s['Arbor ID'] || '');
+}
+
+// Find a sheet student by matching the stored id (UPN or Arbor ID, either works)
+function findSheetStudent(idVal) {
+  return (state.sheetStudents || []).find(x =>
+    String(x['UPN']) === String(idVal) || String(x['Arbor ID']) === String(idVal)
+  );
 }
 
 function getStudentHighestTier(arborId) {
@@ -3927,7 +3939,7 @@ function renderGRScreen() {
 
   // Add from sheetStudents
   (state.sheetStudents || []).forEach(s => {
-    const aid = String(s['Arbor ID']);
+    const aid = studentKey(s);
     studentMap[aid] = {
       arborId: aid,
       name: s['Pupil Name'] || aid,
@@ -4091,7 +4103,7 @@ function openStudentGR(arborId) {
 
   // Ensure grData entry exists
   if (!state.grData[arborId]) {
-    const s = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(arborId));
+    const s = findSheetStudent(arborId);
     const ispRec = state.isps.find(i => String(i.arborId) === String(arborId));
     state.grData[arborId] = {
       arborId,
@@ -4104,7 +4116,7 @@ function openStudentGR(arborId) {
   const rec = state.grData[arborId];
 
   // Get student meta — sheet first, then ISP record, then GR record
-  const s = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(arborId));
+  const s = findSheetStudent(arborId);
   const ispRec = state.isps.find(i => String(i.arborId) === String(arborId));
   const studentName = rec.studentName || (s ? s['Pupil Name'] : (ispRec ? ispRec.name : arborId));
   const year = (s ? sheetVal(s,'nc year','year group','year') : '') || (ispRec ? ispRec.year : '') || rec.year || '';
