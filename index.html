@@ -1103,15 +1103,21 @@ async function postToSheet(isp) {
   const badge = document.getElementById('sheet-badge');
   if (badge) { badge.textContent = '↑ Syncing…'; badge.style.color = '#e67e22'; }
   try {
-    // Use URLSearchParams so Content-Type is application/x-www-form-urlencoded
-    // — a "simple" type that works cross-origin with Apps Script without preflight
-    const form = new URLSearchParams();
-    form.set('payload', JSON.stringify(isp));
-    await fetch(state.sheetUrl, {
-      method: 'POST',
-      mode: 'no-cors',
-      body: form,
-    });
+    // Use GET with the ISP JSON split into ≤1500-char chunks to stay well
+    // under URL limits. Apps Script GET requests work reliably cross-origin.
+    const json = JSON.stringify(isp);
+    const CHUNK = 1500;
+    const chunks = [];
+    for (let i = 0; i < json.length; i += CHUNK) chunks.push(json.slice(i, i + CHUNK));
+    const id = encodeURIComponent(isp.id);
+    const total = chunks.length;
+    // Send each chunk
+    for (let n = 0; n < chunks.length; n++) {
+      const url = `${state.sheetUrl}?action=chunk&id=${id}&n=${n}&total=${total}&data=${encodeURIComponent(chunks[n])}`;
+      await fetch(url);
+    }
+    // Commit
+    await fetch(`${state.sheetUrl}?action=commit&id=${id}`);
     if (badge) {
       badge.textContent = '✓ Synced to sheet';
       badge.style.color = 'var(--teal)';
@@ -3652,11 +3658,54 @@ function buildISPPDF(src) {
       <details style="margin-bottom:1.25rem">
         <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">📋 Step 1 — Paste this script into your sheet's Apps Script editor</summary>
         <div style="margin-top:8px;background:#1e1e2e;border-radius:var(--radius);padding:1rem;overflow-x:auto">
-          <pre style="margin:0;font-size:11px;color:#cdd6f4;white-space:pre;font-family:monospace" id="apps-script-code">// ── READ: returns all students + all ISPs ──────────────────────────
-function doGet(e) {
+          <pre style="margin:0;font-size:11px;color:#cdd6f4;white-space:pre;font-family:monospace" id="apps-script-code">function doGet(e) {
+  const action = e.parameter.action || 'read';
   const ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  // Students from first sheet
+  // ── WRITE: receive a chunk of ISP data ──────────────────────────
+  if (action === 'chunk') {
+    const props = PropertiesService.getScriptProperties();
+    const id = e.parameter.id;
+    const n  = e.parameter.n;
+    props.setProperty('chunk_' + id + '_' + n, e.parameter.data);
+    props.setProperty('chunk_' + id + '_total', e.parameter.total);
+    return json({ ok: true });
+  }
+
+  // ── WRITE: reassemble chunks and save ISP ───────────────────────
+  if (action === 'commit') {
+    const props = PropertiesService.getScriptProperties();
+    const id    = e.parameter.id;
+    const total = parseInt(props.getProperty('chunk_' + id + '_total') || '0');
+    let assembled = '';
+    for (let i = 0; i < total; i++) {
+      assembled += props.getProperty('chunk_' + id + '_' + i) || '';
+    }
+    // Clean up temp keys
+    for (let i = 0; i < total; i++) props.deleteProperty('chunk_' + id + '_' + i);
+    props.deleteProperty('chunk_' + id + '_total');
+
+    const isp = JSON.parse(assembled);
+
+    let ispSheet = ss.getSheetByName('ISP_Data');
+    if (!ispSheet) {
+      ispSheet = ss.insertSheet('ISP_Data');
+      ispSheet.getRange(1, 1, 1, 6).setValues([['id','arborId','name','level','updated','data']]);
+    }
+    const rows = ispSheet.getDataRange().getValues();
+    const idCol = rows[0].indexOf('id');
+    let rowIdx = -1;
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][idCol]) === String(isp.id)) { rowIdx = i + 1; break; }
+    }
+    const rowData = [isp.id, isp.arborId||'', isp.name||'', isp.level||'', isp.updated||'', JSON.stringify(isp)];
+    if (rowIdx === -1) ispSheet.appendRow(rowData);
+    else ispSheet.getRange(rowIdx, 1, 1, rowData.length).setValues([rowData]);
+
+    return json({ ok: true, id: isp.id });
+  }
+
+  // ── READ: return students + all saved ISPs ──────────────────────
   const studentSheet = ss.getSheets()[0];
   const [headers, ...rows] = studentSheet.getDataRange().getValues();
   const students = rows.map(row => {
@@ -3665,7 +3714,6 @@ function doGet(e) {
     return obj;
   }).filter(s => s['Arbor ID']);
 
-  // ISPs from dedicated ISP_Data tab (created automatically by doPost)
   let isps = [];
   const ispSheet = ss.getSheetByName('ISP_Data');
   if (ispSheet && ispSheet.getLastRow() > 1) {
@@ -3673,57 +3721,14 @@ function doGet(e) {
     const dataCol = ispRows[0].indexOf('data');
     if (dataCol > -1) {
       isps = ispRows.slice(1)
-        .map(r => { try { return JSON.parse(r[dataCol]); } catch(e) { return null; } })
+        .map(r => { try { return JSON.parse(r[dataCol]); } catch(e2) { return null; } })
         .filter(Boolean);
     }
   }
-
   return json({ students, isps });
 }
 
-// ── WRITE: upserts one ISP into the ISP_Data tab ──────────────────
-function doPost(e) {
-  try {
-    // URLSearchParams body → e.parameter.payload
-    const isp = JSON.parse(e.parameter.payload || '{}');
-    if (!isp.id) return json({ error: 'No ISP id' });
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-    // Get or create ISP_Data sheet
-    let ispSheet = ss.getSheetByName('ISP_Data');
-    if (!ispSheet) {
-      ispSheet = ss.insertSheet('ISP_Data');
-      ispSheet.getRange(1, 1, 1, 6).setValues([[
-        'id', 'arborId', 'name', 'level', 'updated', 'data'
-      ]]);
-    }
-
-    const existing = ispSheet.getDataRange().getValues();
-    const idCol = existing[0].indexOf('id');
-    let rowIdx = -1;
-    for (let i = 1; i < existing.length; i++) {
-      if (String(existing[i][idCol]) === String(isp.id)) { rowIdx = i + 1; break; }
-    }
-
-    const rowData = [
-      isp.id,
-      isp.arborId || '',
-      isp.name || '',
-      isp.level || '',
-      isp.updated || '',
-      JSON.stringify(isp),
-    ];
-
-    if (rowIdx === -1) {
-      ispSheet.appendRow(rowData);
-    } else {
-      ispSheet.getRange(rowIdx, 1, 1, rowData.length).setValues([rowData]);
-    }
-
-    return json({ success: true });
-  } catch(err) { return json({ error: err.toString() }); }
-}
+function doPost(e) { return doGet(e); }
 
 function json(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
