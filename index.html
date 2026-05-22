@@ -501,7 +501,11 @@
           <h1>ISP Dashboard</h1>
           <p id="dash-welcome">Welcome back. Here are the active support plans across your trust.</p>
         </div>
-        <button class="btn-primary" onclick="showScreen('screen-arbor')">＋ New ISP</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button class="btn-secondary" onclick="showSheetSettings()" style="font-size:13px" title="Connect student data sheet">⚙ Sheet</button>
+          <span id="sheet-badge" style="font-size:11px;color:var(--muted)"></span>
+          <button class="btn-primary" onclick="showScreen('screen-arbor')">＋ New ISP</button>
+        </div>
       </div>
       <div class="stat-row">
         <div class="stat-card card-green" id="sc-all" onclick="toggleStatFilter('all')" title="Show all ISPs">
@@ -586,22 +590,28 @@
         <div style="margin-bottom:1.5rem">
           <div style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px">Step 0 of 7</div>
           <h1 style="font-size:24px;font-weight:700;margin-bottom:6px">Student lookup</h1>
-          <p style="font-size:14px;color:var(--muted)">Enter the student's Arbor MIS ID. Details will auto-populate from the MIS.</p>
-          <div style="margin-top:8px;padding:9px 13px;background:var(--blue-light);border:1px solid #B5D4F4;border-radius:var(--radius);font-size:13px;color:var(--navy)">
-            Demo records available for Arbor IDs <strong>10001 – 10010</strong>
-          </div>
+          <p style="font-size:14px;color:var(--muted)">Search by name to load student data from your MIS sheet, or enter an Arbor ID manually.</p>
         </div>
         <div class="lookup-card">
-          <div class="lookup-row">
-            <div class="field">
-              <label>Arbor Student ID</label>
-              <input type="text" id="arbor-id-input" placeholder="e.g. 48291" maxlength="10" style="font-size:16px;font-weight:600;letter-spacing:1px" />
+          <!-- Name search (sheet connected) -->
+          <div id="name-search-section">
+            <div class="field" style="margin-bottom:0;position:relative">
+              <label>Search student name</label>
+              <input type="text" id="student-name-search" placeholder="Start typing a name…" autocomplete="off"
+                oninput="onStudentSearchInput()" style="font-size:15px" />
+              <div id="student-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);z-index:99;box-shadow:0 4px 12px rgba(0,0,0,0.12);max-height:320px;overflow-y:auto"></div>
             </div>
-            <button class="btn-primary" onclick="lookupArbor()" style="height:42px;white-space:nowrap">Look up →</button>
+            <div style="margin-top:10px;font-size:12px;color:var(--muted)">
+              or search by Arbor ID:
+              <input type="text" id="arbor-id-input" placeholder="e.g. 48291" maxlength="10"
+                style="font-size:13px;font-weight:600;letter-spacing:1px;width:120px;margin-left:6px;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg)" />
+              <button class="btn-secondary" onclick="lookupArbor()" style="font-size:12px;padding:4px 10px;margin-left:4px">Look up</button>
+            </div>
           </div>
-          <div id="found-banner" class="found-banner">
-            ✓ Student record found. Confirm or edit the details below.
-          </div>
+
+          <div id="found-banner" class="found-banner" style="margin-top:1rem"></div>
+          <div id="student-info-card" style="display:none;margin-top:0.75rem"></div>
+
           <div id="arbor-form-fields" style="display:none">
             <hr class="divider" />
             <div class="row-2">
@@ -610,8 +620,8 @@
             </div>
             <div class="row-3">
               <div class="field"><label>Date of birth</label><input type="date" id="f-dob" /></div>
-              <div class="field"><label>Year group</label><input type="text" id="f-year" placeholder="e.g. Year 5" /></div>
-              <div class="field"><label>Form / class</label><input type="text" id="f-form" placeholder="e.g. 5B" /></div>
+              <div class="field"><label>Year group</label><input type="text" id="f-year" placeholder="e.g. Year 7" /></div>
+              <div class="field"><label>Form / class</label><input type="text" id="f-form" placeholder="e.g. 7T2" /></div>
             </div>
             <div class="row-2">
               <div class="field"><label>School / site</label><input type="text" id="f-school" placeholder="e.g. Grange Technology College" /></div>
@@ -729,6 +739,7 @@
    ───────────────────────────────────────────────────────────────────────── */
 const API_KEY = 'YOUR_ANTHROPIC_API_KEY_HERE';
 const STORAGE_KEY = 'isp_tool_data_v5';
+const SHEET_URL_KEY = 'isp_sheet_url_v1';
 
 /* ── State ── */
 /* ══════════════════════════════════════════════════════════════════
@@ -1048,12 +1059,203 @@ function saveISPs() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.isps)); } catch(e) {}
 }
 
+function loadSheetUrl() { return localStorage.getItem(SHEET_URL_KEY) || ''; }
+function saveSheetUrlLocal(url) { try { localStorage.setItem(SHEET_URL_KEY, url); } catch(e) {} }
+
+async function loadSheetData() {
+  if (!state.sheetUrl) return;
+  try {
+    const r = await fetch(state.sheetUrl, { cache: 'no-store' });
+    const d = await r.json();
+    state.sheetStudents = d.students || [];
+    const badge = document.getElementById('sheet-badge');
+    if (badge) badge.textContent = `● ${state.sheetStudents.length} students loaded`;
+    if (badge) badge.style.color = 'var(--teal)';
+  } catch(e) {
+    const badge = document.getElementById('sheet-badge');
+    if (badge) { badge.textContent = '● Connection failed'; badge.style.color = '#c0392b'; }
+    console.warn('Sheet load failed:', e);
+  }
+}
+
+async function postToSheet(isp) {
+  if (!state.sheetUrl) return;
+  try {
+    await fetch(state.sheetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ isp }),
+    });
+  } catch(e) { console.warn('Sheet post failed:', e); }
+}
+
+function showSheetSettings() {
+  document.getElementById('sheet-modal').style.display = 'flex';
+  document.getElementById('sheet-url-input').value = state.sheetUrl || '';
+}
+
+function closeSheetSettings() {
+  document.getElementById('sheet-modal').style.display = 'none';
+}
+
+function saveSheetSettings() {
+  const url = document.getElementById('sheet-url-input').value.trim();
+  state.sheetUrl = url;
+  saveSheetUrlLocal(url);
+  closeSheetSettings();
+  if (url) loadSheetData();
+}
+
+async function testSheetConnection() {
+  const url = document.getElementById('sheet-url-input').value.trim();
+  const btn = document.getElementById('test-sheet-btn');
+  if (!url) { alert('Paste the Apps Script URL first.'); return; }
+  btn.textContent = 'Testing…'; btn.disabled = true;
+  try {
+    const r = await fetch(url, { cache: 'no-store' });
+    const d = await r.json();
+    const n = (d.students || []).length;
+    btn.textContent = '✓ Test connection';
+    btn.disabled = false;
+    alert(`✓ Connected! ${n} student records found.`);
+  } catch(e) {
+    btn.textContent = '✓ Test connection';
+    btn.disabled = false;
+    alert('Connection failed. Check the URL and deployment settings.');
+  }
+}
+
+/* Student autocomplete */
+function filterStudents(q) {
+  if (!q || q.length < 2) return [];
+  const ql = q.toLowerCase();
+  return (state.sheetStudents || []).filter(s => {
+    const name = (s['Pupil Name'] || '').toLowerCase();
+    return name.includes(ql);
+  }).slice(0, 8);
+}
+
+function onStudentSearchInput() {
+  const q = document.getElementById('student-name-search').value;
+  const matches = filterStudents(q);
+  const list = document.getElementById('student-autocomplete');
+  if (!matches.length) { list.style.display = 'none'; return; }
+  list.innerHTML = matches.map(s => {
+    const aid = s['Arbor ID'];
+    const name = s['Pupil Name'] || '';
+    const yr = s['NC Year'] || '';
+    const fm = s['Form'] || '';
+    return `<div class="ac-item" onclick="selectStudent('${aid}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center" onmouseover="this.style.background='var(--teal-light)'" onmouseout="this.style.background=''">
+      <span style="font-weight:600;font-size:14px">${name}</span>
+      <span style="font-size:12px;color:var(--muted)">${yr} · ${fm}</span>
+    </div>`;
+  }).join('');
+  list.style.display = 'block';
+}
+
+function selectStudent(arborId) {
+  const s = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(arborId));
+  document.getElementById('student-autocomplete').style.display = 'none';
+  if (!s) return;
+
+  const fullName = s['Pupil Name'] || '';
+  const parts = fullName.trim().split(' ');
+  const fname = parts[0] || '';
+  const lname = parts.slice(1).join(' ') || '';
+
+  document.getElementById('student-name-search').value = fullName;
+  state.student.arborId = String(s['Arbor ID']);
+
+  const banner = document.getElementById('found-banner');
+  banner.style.display = 'block';
+  banner.innerHTML = `✓ Record found — <strong>${fullName}</strong> · Arbor ID ${s['Arbor ID']}`;
+
+  // Info card
+  const pct = s['Present'] || '';
+  const bp = s['Behaviour Points'] !== undefined ? s['Behaviour Points'] : '—';
+  const sus = s['Suspensions this Year'] !== undefined ? s['Suspensions this Year'] : '—';
+  const intEx = s['Internal Exclusions this Year'] !== undefined ? s['Internal Exclusions this Year'] : '—';
+  const sen = s['SEN Status'] || '—';
+  const fsm = s['FSM'] || '—';
+  const pp = s['PP'] || '—';
+  const eal = s['EAL'] || '—';
+  const lead = s['Lead Responsible'] || '—';
+
+  const bpNum = parseFloat(bp);
+  const bpColor = isNaN(bpNum) ? 'var(--teal)' : bpNum < 0 ? '#c0392b' : bpNum > 200 ? '#e67e22' : 'var(--teal)';
+  const attNum = parseFloat(pct);
+  const attColor = isNaN(attNum) ? 'var(--teal)' : attNum < 85 ? '#c0392b' : attNum < 90 ? '#e67e22' : 'var(--teal)';
+
+  const infoCard = document.getElementById('student-info-card');
+  infoCard.style.display = 'block';
+  infoCard.innerHTML = `
+    <div style="padding:1rem 1.25rem;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:1rem">
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Live data from MIS</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+        ${[
+          ['Attendance', pct, attColor],
+          ['Behaviour Pts', bp, bpColor],
+          ['Suspensions', sus, parseInt(sus)>0?'#c0392b':'var(--teal)'],
+          ['Internal Excl.', intEx, parseInt(intEx)>2?'#e67e22':'var(--teal)'],
+        ].map(([label,val,col])=>`
+          <div style="background:var(--surface);border-radius:var(--radius);padding:8px 10px;text-align:center;border:1px solid var(--border)">
+            <div style="font-size:18px;font-weight:800;color:${col}">${val}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:2px">${label}</div>
+          </div>`).join('')}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;font-size:12px">
+        <span style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px"><strong>SEN:</strong> ${sen}</span>
+        <span style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px"><strong>FSM:</strong> ${fsm}</span>
+        <span style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px"><strong>PP:</strong> ${pp}</span>
+        <span style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px"><strong>EAL:</strong> ${eal}</span>
+        <span style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 10px"><strong>Lead:</strong> ${lead}</span>
+        ${s['Pupil Passport Link']?`<a href="${s['Pupil Passport Link']}" target="_blank" style="background:var(--teal-light);border:1px solid rgba(15,110,86,0.3);border-radius:20px;padding:3px 10px;color:var(--teal);text-decoration:none;font-weight:600">📋 Pupil Passport</a>`:''}
+      </div>
+    </div>`;
+
+  // Populate form fields
+  const formFields = document.getElementById('arbor-form-fields');
+  formFields.style.display = 'block';
+  const populate = {
+    'f-fname': fname,
+    'f-lname': lname,
+    'f-dob': '',
+    'f-year': s['NC Year'] || '',
+    'f-form': s['Form'] || '',
+    'f-school': state.user?.school || '',
+  };
+  Object.entries(populate).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) { el.value = val; el.readOnly = true; el.style.background = 'var(--bg)'; el.style.color = 'var(--muted)'; }
+  });
+  const genderEl = document.getElementById('f-gender');
+  if (genderEl && s['Sex']) { genderEl.value = s['Sex']; genderEl.disabled = true; }
+  state._prefill = {
+    diagnoses: s['SEN Status'] || '',
+    socialCare: '',
+    upn: s['UPN'] || '',
+    ethnicity: s['Ethnicity'] || '',
+    eal: s['EAL'] || '',
+    fsm: s['FSM'] || '',
+    pp: s['PP'] || '',
+    kssPkss: s['KSS/PKSS'] || '',
+    behaviourPoints: s['Behaviour Points'] !== undefined ? String(s['Behaviour Points']) : '',
+    attendance: pct,
+    suspensions: String(s['Suspensions this Year'] || ''),
+    internalExclusions: String(s['Internal Exclusions this Year'] || ''),
+    lead: s['Lead Responsible'] || '',
+    pupilPassportLink: s['Pupil Passport Link'] || '',
+  };
+}
+
 const state = {
   user: null,
   student: {},
   step: 0,
   isps: loadStoredISPs() || DEMO_ISPS,
   viewingISP: null,
+  sheetUrl: loadSheetUrl(),
+  sheetStudents: [],
   formData: {
     overview: {},
     areas: [],
@@ -1097,6 +1299,7 @@ function doLogin() {
   updateUserUI();
   renderDashboard();
   showScreen('screen-dashboard');
+  loadSheetData();
 }
 
 function doSignOut() {
@@ -1318,6 +1521,10 @@ function lookupArbor() {
   if (!val || val.length < 4) { alert('Please enter a valid Arbor ID (minimum 4 digits).'); return; }
   state.student.arborId = val;
 
+  // Try to match in sheet students too
+  const sheetRec = (state.sheetStudents || []).find(x => String(x['Arbor ID']) === String(val));
+  if (sheetRec) { selectStudent(val); return; }
+
   const record = ARBOR_DB[val];
   const banner = document.getElementById('found-banner');
   const formFields = document.getElementById('arbor-form-fields');
@@ -1365,7 +1572,7 @@ function goToISPForm() {
   const prefill = state._prefill || {};
   state.step = 0;
   state.formData = {
-    overview:      { diagnoses: prefill.diagnoses || '' },
+    overview:      { diagnoses: prefill.diagnoses || '', staff: prefill.lead || '', attendance: prefill.attendance || '' },
     summary:       '',
     areas:         [],
     strengths:     {},
@@ -1380,6 +1587,7 @@ function goToISPForm() {
     provisions:    {},
     voices:        { pupil:'', parent:'' },
   };
+  state.student.upn = prefill.upn || '';
   state._prefill = null;
   document.getElementById('isp-topbar-name').textContent = `ISP — ${state.student.fullName}`;
   renderStep();
@@ -1390,6 +1598,9 @@ function resetForm() {
   document.getElementById('arbor-id-input').value = '';
   document.getElementById('found-banner').style.display = 'none';
   document.getElementById('arbor-form-fields').style.display = 'none';
+  document.getElementById('student-name-search').value = '';
+  document.getElementById('student-autocomplete').style.display = 'none';
+  const sic = document.getElementById('student-info-card'); if (sic) sic.style.display = 'none';
   ['f-fname','f-lname','f-dob','f-year','f-form','f-school'].forEach(id => {
     const el = document.getElementById(id);
     el.value = '';
@@ -2839,6 +3050,7 @@ function saveViewSection(section, idx) {
   isp.updated = today;
   isp.lastEdited = new Date().toISOString();
   saveISPs();
+  postToSheet(isp);
   renderViewScreen(isp, idx);
 }
 
@@ -2944,6 +3156,7 @@ function finaliseISP() {
       voices:    { ...fd.voices },
     });
     saveISPs();
+    postToSheet(state.isps[idx]);
     savedIdx = idx;
     state.editingIdx = null;
   } else {
@@ -2969,6 +3182,7 @@ function finaliseISP() {
     };
     state.isps.unshift(record);
     saveISPs();
+    postToSheet(state.isps[0]);
     savedIdx = 0;
   }
   // Show preview of the saved ISP
@@ -3360,5 +3574,101 @@ function buildISPPDF(src) {
     </table></div>`;
 }
 </script>
+
+<!-- Sheet settings modal -->
+<div id="sheet-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);width:min(700px,95vw);max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3)">
+    <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <h2 style="margin:0;font-size:18px">⚙ Connect student data sheet</h2>
+      <button class="btn-ghost" onclick="closeSheetSettings()">✕ Close</button>
+    </div>
+    <div style="padding:1.5rem">
+
+      <div style="background:var(--blue-light);border:1px solid #B5D4F4;border-radius:var(--radius);padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:13px;color:var(--navy)">
+        <strong>How it works:</strong> You paste a small script into your Google Sheet's Apps Script editor (Extensions → Apps Script). Deploy it once as a web app — no Google Cloud account or sign-in needed. Paste the URL below.
+      </div>
+
+      <details style="margin-bottom:1.25rem">
+        <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">📋 Step 1 — Paste this script into your sheet's Apps Script editor</summary>
+        <div style="margin-top:8px;background:#1e1e2e;border-radius:var(--radius);padding:1rem;overflow-x:auto">
+          <pre style="margin:0;font-size:11px;color:#cdd6f4;white-space:pre;font-family:monospace" id="apps-script-code">function doGet(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  const [headers, ...rows] = sheet.getDataRange().getValues();
+  const students = rows.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { if (h) obj[String(h).trim()] = row[i]; });
+    return obj;
+  }).filter(s => s['Arbor ID']);
+  return json({ students });
+}
+
+function doPost(e) {
+  try {
+    const { isp } = JSON.parse(e.postData.contents);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    const data = sheet.getDataRange().getValues();
+    const headers = data[0].map(h => String(h).trim());
+    const arborCol = headers.indexOf('Arbor ID');
+    const rowIdx = data.findIndex((r, i) => i > 0 && String(r[arborCol]) === String(isp.arborId));
+    if (rowIdx === -1) return json({ error: 'Student not found' });
+    const cols = {
+      ISP_Status: isp.status || 'Active',
+      ISP_Level: isp.level || '',
+      ISP_Areas: (isp.areas || []).join(', '),
+      ISP_Created: (isp.overview && isp.overview.created) || '',
+      ISP_Reviewed: (isp.overview && isp.overview.reviewed) || '',
+      ISP_Staff: (isp.overview && isp.overview.staff) || '',
+      ISP_EHCP: (isp.health && isp.health.ehcp) || '',
+      ISP_Diagnoses: (isp.overview && isp.overview.diagnoses) || '',
+      ISP_Data: JSON.stringify(isp),
+    };
+    Object.keys(cols).forEach(col => {
+      if (!headers.includes(col)) {
+        sheet.getRange(1, headers.length + 1).setValue(col);
+        headers.push(col);
+      }
+    });
+    Object.entries(cols).forEach(([col, val]) => {
+      sheet.getRange(rowIdx + 1, headers.indexOf(col) + 1).setValue(val);
+    });
+    return json({ success: true });
+  } catch(err) { return json({ error: err.toString() }); }
+}
+
+function json(data) {
+  return ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+        </div>
+        <button class="btn-secondary" style="margin-top:8px;font-size:12px" onclick="navigator.clipboard.writeText(document.getElementById('apps-script-code').textContent).then(()=>alert('Copied!'))">📋 Copy script</button>
+      </details>
+
+      <details style="margin-bottom:1.25rem">
+        <summary style="cursor:pointer;font-weight:700;font-size:14px;padding:8px 0">🚀 Step 2 — Deploy the script as a web app</summary>
+        <ol style="font-size:13px;line-height:2;margin:8px 0 0 16px;color:var(--text)">
+          <li>In the Apps Script editor, click <strong>Deploy → New deployment</strong></li>
+          <li>Click the gear icon next to "Type" and choose <strong>Web app</strong></li>
+          <li>Set <strong>Execute as: Me</strong></li>
+          <li>Set <strong>Who has access: Anyone</strong></li>
+          <li>Click <strong>Deploy</strong> and copy the web app URL</li>
+        </ol>
+      </details>
+
+      <div class="field">
+        <label>Step 3 — Paste the web app URL here</label>
+        <input type="url" id="sheet-url-input" placeholder="https://script.google.com/macros/s/…/exec" style="font-size:13px" />
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem">
+        <button id="test-sheet-btn" class="btn-secondary" style="font-size:13px" onclick="testSheetConnection()">✓ Test connection</button>
+        <button class="btn-primary" onclick="saveSheetSettings()">Save and connect</button>
+      </div>
+
+      <div style="margin-top:1rem;padding:10px 14px;background:#FFF8E7;border:1px solid #E8C84A;border-radius:var(--radius);font-size:12px;color:#7A5C00">
+        <strong>Privacy note:</strong> Student data is fetched directly from your sheet into this browser session only. Nothing is sent to any third-party server. ISP data is written back only to your own sheet via the script you control.
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
