@@ -1068,14 +1068,27 @@ async function loadSheetData() {
     const r = await fetch(state.sheetUrl, { cache: 'no-store' });
     const d = await r.json();
     state.sheetStudents = d.students || [];
+    // Load ISPs from sheet — sheet is source of truth when connected
+    if (d.isps && d.isps.length) {
+      state.isps = d.isps;
+      saveISPs();
+      renderDashboard();
+    }
+    const n = state.sheetStudents.length;
+    const ni = (d.isps || []).length;
     const badge = document.getElementById('sheet-badge');
-    if (badge) badge.textContent = `● ${state.sheetStudents.length} students loaded`;
+    if (badge) badge.textContent = `● ${n} students · ${ni} ISPs`;
     if (badge) badge.style.color = 'var(--teal)';
   } catch(e) {
     const badge = document.getElementById('sheet-badge');
     if (badge) { badge.textContent = '● Connection failed'; badge.style.color = '#c0392b'; }
     console.warn('Sheet load failed:', e);
   }
+}
+
+async function pushAllISPsToSheet() {
+  if (!state.sheetUrl || !state.isps.length) return;
+  await Promise.all(state.isps.map(isp => postToSheet(isp)));
 }
 
 async function postToSheet(isp) {
@@ -1098,12 +1111,17 @@ function closeSheetSettings() {
   document.getElementById('sheet-modal').style.display = 'none';
 }
 
-function saveSheetSettings() {
+async function saveSheetSettings() {
   const url = document.getElementById('sheet-url-input').value.trim();
+  const isNew = url && url !== state.sheetUrl;
   state.sheetUrl = url;
   saveSheetUrlLocal(url);
   closeSheetSettings();
-  if (url) loadSheetData();
+  if (url) {
+    await loadSheetData();
+    // On first connection (or URL change), push any existing ISPs to the sheet
+    if (isNew && state.isps.length) pushAllISPsToSheet();
+  }
 }
 
 async function testSheetConnection() {
@@ -3613,7 +3631,12 @@ function buildISPPDF(src) {
     headers.forEach((h, i) => { if (h) obj[String(h).trim()] = row[i]; });
     return obj;
   }).filter(s => s['Arbor ID']);
-  return json({ students });
+  // Return ISPs stored in ISP_Data column
+  const isps = students
+    .filter(s => s['ISP_Data'])
+    .map(s => { try { return JSON.parse(s['ISP_Data']); } catch(e) { return null; } })
+    .filter(Boolean);
+  return json({ students, isps });
 }
 
 function doPost(e) {
