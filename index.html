@@ -646,17 +646,21 @@
   .semh-domain-card { padding:9px 11px; border-radius:var(--radius); background:var(--bg); border:1px solid var(--border); }
   .semh-domain-name { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
   .semh-q-group { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:1rem; }
-  .semh-q-group-header { font-size:13px; font-weight:700; padding:10px 14px; border-bottom:1px solid var(--border); }
-  .semh-q-row { display:flex; align-items:center; justify-content:space-between; padding:9px 14px; border-bottom:1px solid var(--border); gap:12px; background:var(--surface); }
+  .semh-q-group-header { font-size:12px; font-weight:700; padding:8px 14px; border-bottom:1px solid var(--border); letter-spacing:0.03em; }
+  .semh-q-row { display:flex; align-items:center; padding:5px 14px; border-bottom:1px solid #f0f0f0; gap:10px; min-height:32px; }
   .semh-q-row:last-child { border-bottom:none; }
-  .semh-q-text { font-size:13px; color:var(--text); flex:1; line-height:1.4; }
-  .semh-radio-group { display:flex; gap:3px; flex-shrink:0; }
-  .semh-radio-btn { padding:4px 9px; border:1.5px solid var(--border); border-radius:20px; font-size:11px; cursor:pointer; background:var(--surface); color:var(--muted); white-space:nowrap; user-select:none; }
-  .semh-radio-btn:hover { background:var(--bg); }
-  .semh-radio-btn.sel0 { background:#fee2e2; border-color:#ef4444; color:#b91c1c; font-weight:700; }
-  .semh-radio-btn.sel1 { background:#fef9c3; border-color:#eab308; color:#854d0e; font-weight:700; }
-  .semh-radio-btn.sel2 { background:#dcfce7; border-color:#22c55e; color:#15803d; font-weight:700; }
-  .semh-radio-btn.sel3 { background:#bbf7d0; border-color:#16a34a; color:#14532d; font-weight:700; }
+  .semh-q-row:nth-child(even) { background:#fafaf8; }
+  .semh-q-num { font-size:10px; color:var(--teal); font-weight:700; min-width:18px; }
+  .semh-q-text { font-size:12px; color:var(--text); flex:1; line-height:1.35; }
+  .semh-rating-group { display:flex; gap:3px; flex-shrink:0; }
+  .semh-rating-btn { width:36px; height:26px; border:1.5px solid var(--border); border-radius:5px; background:white; cursor:pointer; font-size:11px; font-weight:700; color:var(--muted); display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
+  .semh-rating-btn:hover { border-color:var(--teal); color:var(--teal); }
+  .semh-rating-btn.rb0 { background:#fde8e8; border-color:#ef4444; color:#b91c1c; }
+  .semh-rating-btn.rb1 { background:#fff3e0; border-color:#f59e0b; color:#92400e; }
+  .semh-rating-btn.rb2 { background:#e8f4ff; border-color:#3b82f6; color:#1d4ed8; }
+  .semh-rating-btn.rb3 { background:#e8f5e9; border-color:#22c55e; color:#15803d; }
+  .semh-scale-header { display:flex; justify-content:flex-end; padding:4px 14px 2px; gap:3px; }
+  .semh-scale-lbl { width:36px; text-align:center; font-size:9px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.03em; }
   .semh-isp-header { padding:10px 14px; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:space-between; border-radius:var(--radius) var(--radius) 0 0; }
   .semh-isp-body { padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); }
 </style>
@@ -1003,7 +1007,10 @@
       </div>
       <div id="semh-questions-body" style="padding:1.25rem 1.5rem"></div>
       <div style="padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <div id="semh-progress-text" style="font-size:13px;color:var(--muted)"></div>
+        <div>
+          <div id="semh-progress-text" style="font-size:12px;color:var(--muted);margin-bottom:5px"></div>
+          <div style="width:180px;height:5px;background:#e8e8e8;border-radius:3px;overflow:hidden"><div id="semh-progress-bar" style="height:100%;background:var(--teal);border-radius:3px;transition:width 0.2s;width:0%"></div></div>
+        </div>
         <div style="display:flex;gap:8px">
           <button class="btn-secondary" onclick="closeSEMHModal()">Cancel</button>
           <button class="btn-primary" id="semh-save-btn" onclick="saveSEMHAssessment()">Save assessment</button>
@@ -4956,39 +4963,39 @@ function renderSEMHQuestions() {
   if (!body) return;
   body.innerHTML = SEMH_WAYS.map(way => {
     const domains = SEMH_DOMAINS.filter(d => d.way === way.id);
-    const qs = domains.map(dom => {
-      const domQs = SEMH_QUESTIONS.filter(q => q.domain === dom.id);
-      const qRows = domQs.map(q => `
-        <div class="semh-q-row" id="semh-qrow-${q.id}">
-          <div class="semh-q-text"><span style="font-size:11px;color:var(--muted);margin-right:6px">${q.id}.</span>${q.text}</div>
-          <div class="semh-radio-group">
-            ${SEMH_LABELS.map((lbl,v) => `<div class="semh-radio-btn${_semhScores[q.id]===v?' sel'+v:''}" onclick="setSEMHScore(${q.id},${v},this)">${lbl}</div>`).join('')}
+    const domHtml = domains.map(dom => {
+      const qs = SEMH_QUESTIONS.filter(q => q.domain === dom.id);
+      const rows = qs.map((q, i) => `
+        <div class="semh-q-row" id="semh-qrow-${q.id}" style="${i % 2 === 1 ? 'background:#fafaf8' : ''}">
+          <span class="semh-q-num">${q.id}</span>
+          <span class="semh-q-text">${q.text}</span>
+          <div class="semh-rating-group">
+            ${[0,1,2,3].map(v => `<button class="semh-rating-btn${_semhScores[q.id]===v?' rb'+v:''}" onclick="setSEMHScore(${q.id},${v})">${v}</button>`).join('')}
           </div>
         </div>`).join('');
-      return `<div style="border-bottom:1px solid ${way.color}20;padding:6px 0 4px;margin-top:4px">
-        <div style="font-size:11px;font-weight:700;color:${way.color};text-transform:uppercase;letter-spacing:0.05em;padding:4px 0 6px">${dom.label}</div>
-        ${domQs.map(q => `
-          <div class="semh-q-row" id="semh-qrow-${q.id}">
-            <div class="semh-q-text"><span style="font-size:11px;color:var(--muted);margin-right:6px">${q.id}.</span>${q.text}</div>
-            <div class="semh-radio-group">
-              ${SEMH_LABELS.map((lbl,v) => `<div class="semh-radio-btn${_semhScores[q.id]===v?' sel'+v:''}" onclick="setSEMHScore(${q.id},${v},this)">${lbl}</div>`).join('')}
-            </div>
-          </div>`).join('')}
+      return `<div style="border-bottom:1px solid ${way.color}20">
+        <div style="font-size:10px;font-weight:700;color:${way.color};text-transform:uppercase;letter-spacing:0.06em;padding:6px 14px 4px;background:${way.color}0a">${dom.label}</div>
+        ${rows}
       </div>`;
     }).join('');
     return `<div class="semh-q-group">
-      <div class="semh-q-group-header" style="background:${way.bg};color:${way.color}">${way.label}</div>
-      <div style="padding:4px 14px 10px">${qs}</div>
+      <div class="semh-q-group-header" style="background:${way.bg};color:${way.color};display:flex;align-items:center;justify-content:space-between">
+        <span>${way.label}</span>
+        <div class="semh-scale-header" style="padding:0;gap:3px">
+          ${['Never','Sometimes','Usually','Always'].map(l => `<div class="semh-scale-lbl">${l}</div>`).join('')}
+        </div>
+      </div>
+      ${domHtml}
     </div>`;
   }).join('');
   updateSEMHProgress();
 }
 
-function setSEMHScore(qId, val, el) {
+function setSEMHScore(qId, val) {
   _semhScores[qId] = val;
   const row = document.getElementById(`semh-qrow-${qId}`);
-  if (row) row.querySelectorAll('.semh-radio-btn').forEach((b, v) => {
-    b.className = 'semh-radio-btn' + (v === val ? ' sel' + v : '');
+  if (row) row.querySelectorAll('.semh-rating-btn').forEach((b, v) => {
+    b.className = 'semh-rating-btn' + (v === val ? ' rb' + v : '');
   });
   updateSEMHProgress();
 }
@@ -4997,6 +5004,8 @@ function updateSEMHProgress() {
   const answered = Object.keys(_semhScores).length;
   const el = document.getElementById('semh-progress-text');
   if (el) el.textContent = `${answered} / 32 answered`;
+  const bar = document.getElementById('semh-progress-bar');
+  if (bar) bar.style.width = Math.round(answered/32*100) + '%';
   const btn = document.getElementById('semh-save-btn');
   if (btn) btn.disabled = answered < 32;
 }
