@@ -1378,6 +1378,10 @@ async function loadSheetData() {
       d.grData.forEach(rec => { state.grData[rec.arborId] = rec; });
       saveGRData();
     }
+    if (d.semhData && d.semhData.length) {
+      d.semhData.forEach(rec => { state.semhData[rec.upn] = rec; });
+      saveSEMHData();
+    }
     seedGRFromSheet();
     const n = state.sheetStudents.length;
     const ni = (d.isps || []).length;
@@ -3997,6 +4001,21 @@ function seedGRFromSheet() {
   });
 }
 
+async function postSEMHToSheet(upn) {
+  if (!state.sheetUrl || !state.semhData[String(upn)]) return;
+  const rec = state.semhData[String(upn)];
+  const json = JSON.stringify(rec);
+  const CHUNK = 1500;
+  const chunks = [];
+  for (let i = 0; i < json.length; i += CHUNK) chunks.push(json.slice(i, i + CHUNK));
+  const id = encodeURIComponent('semh_' + upn);
+  const total = chunks.length;
+  for (let n = 0; n < chunks.length; n++) {
+    await fetch(`${state.sheetUrl}?action=chunk&id=${id}&n=${n}&total=${total}&data=${encodeURIComponent(chunks[n])}`);
+  }
+  await fetch(`${state.sheetUrl}?action=commitSEMH&id=${encodeURIComponent(upn)}`);
+}
+
 async function postGRToSheet(arborId) {
   if (!state.sheetUrl || !state.grData[arborId]) return;
   const rec = state.grData[arborId];
@@ -5002,6 +5021,7 @@ function saveSEMHAssessment() {
     state.semhData[upn].assessments.push({ type, date, staffName: staff, scores: { ..._semhScores }, completedAt: new Date().toISOString() });
   }
   saveSEMHData();
+  postSEMHToSheet(upn);
   closeSEMHModal();
   openStudentSEMH(upn);
 }
@@ -5292,7 +5312,33 @@ function buildISPPDF(src) {
     return json({ ok: true });
   }
 
-  // ── READ: return students + all saved ISPs + grData ─────────────
+  // ── COMMIT SEMH DATA ───────────────────────────────────────────
+  if (action === 'commitSEMH') {
+    const props = PropertiesService.getScriptProperties();
+    const upn = e.parameter.id;
+    const semhId = 'semh_' + upn;
+    const total = parseInt(props.getProperty('chunk_' + semhId + '_total') || '0');
+    let assembled = '';
+    for (let i = 0; i < total; i++) assembled += props.getProperty('chunk_' + semhId + '_' + i) || '';
+    for (let i = 0; i < total; i++) props.deleteProperty('chunk_' + semhId + '_' + i);
+    props.deleteProperty('chunk_' + semhId + '_total');
+    const rec = JSON.parse(assembled);
+    let semhSheet = ss.getSheetByName('SEMH_Data');
+    if (!semhSheet) {
+      semhSheet = ss.insertSheet('SEMH_Data');
+      semhSheet.getRange(1,1,1,4).setValues([['upn','name','updated','data']]);
+    }
+    const rows = semhSheet.getDataRange().getValues();
+    const idCol = rows[0].indexOf('upn');
+    let rowIdx = -1;
+    for (let i = 1; i < rows.length; i++) { if (String(rows[i][idCol]) === String(upn)) { rowIdx = i+1; break; } }
+    const rowData = [upn, rec.name||'', new Date().toLocaleDateString('en-GB'), JSON.stringify(rec)];
+    if (rowIdx === -1) semhSheet.appendRow(rowData);
+    else semhSheet.getRange(rowIdx,1,1,rowData.length).setValues([rowData]);
+    return json({ ok: true });
+  }
+
+  // ── READ: return students + all saved ISPs + grData + semhData ──
   const studentSheet = ss.getSheets()[0];
   const [headers, ...rows] = studentSheet.getDataRange().getValues();
   const students = rows.map(row => {
@@ -5320,7 +5366,16 @@ function buildISPPDF(src) {
     const dcol = grRows[0].indexOf('data');
     if (dcol > -1) grData = grRows.slice(1).map(r => { try { return JSON.parse(r[dcol]); } catch(e2){ return null; }}).filter(Boolean);
   }
-  return json({ students, isps, grData });
+
+  let semhData = [];
+  const semhSheet2 = ss.getSheetByName('SEMH_Data');
+  if (semhSheet2 && semhSheet2.getLastRow() > 1) {
+    const semhRows = semhSheet2.getDataRange().getValues();
+    const dcol = semhRows[0].indexOf('data');
+    if (dcol > -1) semhData = semhRows.slice(1).map(r => { try { return JSON.parse(r[dcol]); } catch(e2){ return null; }}).filter(Boolean);
+  }
+
+  return json({ students, isps, grData, semhData });
 }
 
 function doPost(e) { return doGet(e); }
