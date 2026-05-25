@@ -634,6 +634,31 @@
   }
   .gr-isp-pill.open { /* solid: open intervention */ }
   .gr-isp-pill.closed { opacity: 0.65; background: white !important; }
+
+  /* ── SEMH Tracker ── */
+  .semh-student-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; }
+  .semh-student-card { background:var(--surface); border:1.5px solid var(--border); border-radius:var(--radius-lg); padding:16px 18px; cursor:pointer; transition:box-shadow 0.15s,transform 0.15s; }
+  .semh-student-card:hover { box-shadow:0 2px 10px rgba(0,0,0,0.09); transform:translateY(-1px); }
+  .semh-score-badge { display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:50%; font-size:14px; font-weight:800; flex-shrink:0; }
+  .semh-bar-wrap { background:#e8e8e8; border-radius:4px; height:7px; overflow:hidden; margin-top:4px; }
+  .semh-bar-fill { height:100%; border-radius:4px; }
+  .semh-domain-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .semh-domain-card { padding:9px 11px; border-radius:var(--radius); background:var(--bg); border:1px solid var(--border); }
+  .semh-domain-name { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
+  .semh-q-group { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:1rem; }
+  .semh-q-group-header { font-size:13px; font-weight:700; padding:10px 14px; border-bottom:1px solid var(--border); }
+  .semh-q-row { display:flex; align-items:center; justify-content:space-between; padding:9px 14px; border-bottom:1px solid var(--border); gap:12px; background:var(--surface); }
+  .semh-q-row:last-child { border-bottom:none; }
+  .semh-q-text { font-size:13px; color:var(--text); flex:1; line-height:1.4; }
+  .semh-radio-group { display:flex; gap:3px; flex-shrink:0; }
+  .semh-radio-btn { padding:4px 9px; border:1.5px solid var(--border); border-radius:20px; font-size:11px; cursor:pointer; background:var(--surface); color:var(--muted); white-space:nowrap; user-select:none; }
+  .semh-radio-btn:hover { background:var(--bg); }
+  .semh-radio-btn.sel0 { background:#fee2e2; border-color:#ef4444; color:#b91c1c; font-weight:700; }
+  .semh-radio-btn.sel1 { background:#fef9c3; border-color:#eab308; color:#854d0e; font-weight:700; }
+  .semh-radio-btn.sel2 { background:#dcfce7; border-color:#22c55e; color:#15803d; font-weight:700; }
+  .semh-radio-btn.sel3 { background:#bbf7d0; border-color:#16a34a; color:#14532d; font-weight:700; }
+  .semh-isp-header { padding:10px 14px; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:space-between; border-radius:var(--radius) var(--radius) 0 0; }
+  .semh-isp-body { padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); }
 </style>
 </head>
 <body>
@@ -687,6 +712,7 @@
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <button class="btn-secondary" onclick="showScreen('screen-graduated');renderGRScreen()" style="font-size:13px">📊 Graduated Response</button>
+          <button class="btn-secondary" onclick="showScreen('screen-semh');renderSEMHScreen()" style="font-size:13px">🧠 SEMH Tracker</button>
           <button class="btn-secondary" onclick="showSheetSettings()" style="font-size:13px" title="Connect student data sheet">⚙ Sheet</button>
           <span id="sheet-badge" style="font-size:11px;color:var(--muted)"></span>
           <button class="btn-primary" onclick="showScreen('screen-arbor')">＋ New ISP</button>
@@ -727,6 +753,7 @@
               <th data-col="school"  class="sortable">School <span class="sort-icon">↕</span></th>
               <th data-col="sen"     class="sortable">SEN <span class="sort-icon">↕</span></th>
               <th data-col="grTier" class="sortable">Graduated Approach Tier <span class="sort-icon">↕</span></th>
+              <th data-col="semhScore" class="sortable">SEMH <span class="sort-icon">↕</span></th>
               <th data-col="staff"   class="sortable">Staff <span class="sort-icon">↕</span></th>
               <th data-col="lastEdited" class="sortable">Last edited <span class="sort-icon">↕</span></th>
               <th></th>
@@ -737,6 +764,7 @@
               <th><input type="text" placeholder="Filter…" data-col="school"  oninput="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)" /></th>
               <th><select data-col="sen" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option value="M">M</option><option value="K">K</option><option value="E">E</option></select></th>
               <th><select data-col="grTier" onchange="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)"><option value="">All</option><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option><option value="4">Tier 4</option></select></th>
+              <th></th>
               <th><input type="text" placeholder="Filter…" data-col="staff"   oninput="applyFilters()" style="width:100%;font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;background:var(--surface)" /></th>
               <th></th>
               <th></th>
@@ -924,7 +952,67 @@
     </div>
   </div>
 
+  <!-- ════════════════════════════════════════════
+       SCREEN 8 — SEMH TRACKER
+  ═══════════════════════════════════════════════ -->
+  <div id="screen-semh" class="screen">
+    <div class="topbar">
+      <div class="topbar-brand">
+        <div class="topbar-logo">SE</div>
+        <span class="topbar-name">SEMH Tracker</span>
+      </div>
+      <div class="topbar-right">
+        <div class="user-pill"><div class="avatar" id="semh-av">JD</div><span id="semh-name-bar">Jane Doe</span></div>
+        <button class="btn-ghost" onclick="showScreen('screen-dashboard')">← Dashboard</button>
+      </div>
+    </div>
+    <div class="page-body wide">
+      <div id="semh-content"></div>
+    </div>
+  </div>
+
 </div>
+
+<!-- SEMH assessment modal -->
+<div id="semh-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;overflow-y:auto">
+  <div style="min-height:100%;display:flex;align-items:flex-start;justify-content:center;padding:2rem 1rem">
+    <div style="background:var(--surface);border-radius:var(--radius-lg);width:100%;max-width:780px;box-shadow:0 8px 40px rgba(0,0,0,0.22)">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <div id="semh-modal-title" style="font-size:18px;font-weight:700"></div>
+          <div id="semh-modal-sub" style="font-size:13px;color:var(--muted);margin-top:2px"></div>
+        </div>
+        <button onclick="closeSEMHModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted)">×</button>
+      </div>
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:14px;align-items:center">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Assessment type</label>
+          <select id="semh-type-select" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px">
+            <option value="baseline">Baseline</option>
+            <option value="review">Review</option>
+          </select>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Date</label>
+          <input type="date" id="semh-date-input" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px" />
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px">
+          <label style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase">Assessing staff</label>
+          <input type="text" id="semh-staff-input" placeholder="Staff name" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px" />
+        </div>
+      </div>
+      <div id="semh-questions-body" style="padding:1.25rem 1.5rem"></div>
+      <div style="padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div id="semh-progress-text" style="font-size:13px;color:var(--muted)"></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary" onclick="closeSEMHModal()">Cancel</button>
+          <button class="btn-primary" id="semh-save-btn" onclick="saveSEMHAssessment()">Save assessment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ════════════════════════════════════════════
      JAVASCRIPT
 ═══════════════════════════════════════════════ -->
@@ -1258,6 +1346,13 @@ function saveGRData() {
   try { localStorage.setItem('isp_gr_data_v1', JSON.stringify(state.grData)); } catch(e) {}
 }
 
+function loadSEMHData() {
+  try { const r = localStorage.getItem(SEMH_KEY); return r ? JSON.parse(r) : {}; } catch(e) { return {}; }
+}
+function saveSEMHData() {
+  try { localStorage.setItem(SEMH_KEY, JSON.stringify(state.semhData)); } catch(e) {}
+}
+
 function saveISPs() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.isps)); } catch(e) {}
 }
@@ -1525,6 +1620,7 @@ const state = {
   step: 0,
   isps: loadStoredISPs() || DEMO_ISPS,
   grData: loadGRData(),
+  semhData: loadSEMHData(),
   viewingISP: null,
   sheetUrl: loadSheetUrl(),
   sheetStudents: [],
@@ -1663,6 +1759,64 @@ const GRAD_TIERS = [
   },
 ];
 
+/* ── SEMH Tracker constants ── */
+const SEMH_KEY = 'isp_semh_data_v1';
+
+const SEMH_WAYS = [
+  { id:'be_yourself',      label:'Be Yourself, Always',  color:'#0d6efd', bg:'#e7f0ff', domains:['physical_health','mental_health'] },
+  { id:'show_you_care',    label:'Show You Care',         color:'#6f42c1', bg:'#f3eeff', domains:['social_skills','life_skills'] },
+  { id:'succeed_together', label:'Succeed Together',      color:'#198754', bg:'#e8f5e9', domains:['work_skills','following_rules'] },
+  { id:'do_what_matters',  label:'Do What Matters Most',  color:'#e67e22', bg:'#fff8e1', domains:['personal_growth','life_goals'] },
+];
+
+const SEMH_DOMAINS = [
+  { id:'physical_health', label:'Physical Health',  qIds:[1,2,3,4],     way:'be_yourself' },
+  { id:'mental_health',   label:'Mental Health',    qIds:[5,6,7,8],     way:'be_yourself' },
+  { id:'social_skills',   label:'Social Skills',    qIds:[9,10,11,12],  way:'show_you_care' },
+  { id:'life_skills',     label:'Life Skills',      qIds:[13,14,15,16], way:'show_you_care' },
+  { id:'work_skills',     label:'Work Skills',      qIds:[17,18,19,20], way:'succeed_together' },
+  { id:'following_rules', label:'Following Rules',  qIds:[21,22,23,24], way:'succeed_together' },
+  { id:'personal_growth', label:'Personal Growth',  qIds:[25,26,27,28], way:'do_what_matters' },
+  { id:'life_goals',      label:'Life Goals',       qIds:[29,30,31,32], way:'do_what_matters' },
+];
+
+const SEMH_QUESTIONS = [
+  { id:1,  domain:'physical_health', text:'Practises self-care (hygiene, sleep, medication)' },
+  { id:2,  domain:'physical_health', text:'Has a healthy and balanced diet' },
+  { id:3,  domain:'physical_health', text:'Avoids substance misuse' },
+  { id:4,  domain:'physical_health', text:'Avoids risk-taking behaviour' },
+  { id:5,  domain:'mental_health',   text:'Can identify key emotions' },
+  { id:6,  domain:'mental_health',   text:'Can regulate emotions when faced with challenges' },
+  { id:7,  domain:'mental_health',   text:'Has stable positive mood and self-image' },
+  { id:8,  domain:'mental_health',   text:'Has a good sense of humour' },
+  { id:9,  domain:'social_skills',   text:'Forms and sustains healthy friendships' },
+  { id:10, domain:'social_skills',   text:'Socialises appropriately with peers' },
+  { id:11, domain:'social_skills',   text:'Socialises appropriately with adults' },
+  { id:12, domain:'social_skills',   text:'Has a responsible attitude to relationships' },
+  { id:13, domain:'life_skills',     text:'Self-motivated / works independently' },
+  { id:14, domain:'life_skills',     text:'Good planning and organisational skills' },
+  { id:15, domain:'life_skills',     text:'Takes pride in their work' },
+  { id:16, domain:'life_skills',     text:'Good problem solver' },
+  { id:17, domain:'work_skills',     text:'Works well as a team' },
+  { id:18, domain:'work_skills',     text:'Functionally literate' },
+  { id:19, domain:'work_skills',     text:'Functionally numerate' },
+  { id:20, domain:'work_skills',     text:'ICT literate' },
+  { id:21, domain:'following_rules', text:'Behaves responsibly online' },
+  { id:22, domain:'following_rules', text:'Follows school rules' },
+  { id:23, domain:'following_rules', text:'Abides by the law in the community' },
+  { id:24, domain:'following_rules', text:'Treats others\' property with respect' },
+  { id:25, domain:'personal_growth', text:'Can be assertive with language and body language' },
+  { id:26, domain:'personal_growth', text:'Has an active lifestyle involving sport/exercise' },
+  { id:27, domain:'personal_growth', text:'Engages in leisure, hobbies and interests' },
+  { id:28, domain:'personal_growth', text:'Motivated by learning and personal development' },
+  { id:29, domain:'life_goals',      text:'Understands difference between wanting and needing' },
+  { id:30, domain:'life_goals',      text:'Resilient in face of setbacks' },
+  { id:31, domain:'life_goals',      text:'Preparing for next life stages' },
+  { id:32, domain:'life_goals',      text:'Has positive aspirations and future goals' },
+];
+
+const SEMH_LABELS = ['Never','Sometimes','Usually','Always'];
+
 /* ── Navigation helpers ── */
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -1754,6 +1908,7 @@ function sortISPs(isps) {
     let av, bv;
     if (col === 'sen')    { av = senCode(a); bv = senCode(b); }
     else if (col === 'grTier') { av = getStudentHighestTier(a.arborId); bv = getStudentHighestTier(b.arborId); }
+    else if (col === 'semhScore') { const ba = getSEMHBaseline(a.arborId)||getSEMHLatestReview(a.arborId); const bb = getSEMHBaseline(b.arborId)||getSEMHLatestReview(b.arborId); av = ba ? semhTotalScore((getSEMHLatestReview(a.arborId)||ba).scores) : -1; bv = bb ? semhTotalScore((getSEMHLatestReview(b.arborId)||bb).scores) : -1; }
     else { av = a[col] || ''; bv = b[col] || ''; }
     // Year sort numerically
     if (col === 'year') { av = parseInt(av.replace('Year ',''))||0; bv = parseInt(bv.replace('Year ',''))||0; }
@@ -1860,6 +2015,7 @@ function renderDashboard() {
       <td style="font-size:13px;color:var(--muted)">${isp.school||'—'}</td>
       <td>${(() => { const c = senCode(isp); const col = c==='E'?'#b71c1c':c==='K'?'#b8860b':'#2e7d32'; return c ? `<span style="font-size:13px;font-weight:800;color:${col}">${c}</span>` : '<span style="color:var(--subtle)">—</span>'; })()}</td>
       <td style="text-align:center">${(() => { const t = getStudentHighestTier(isp.arborId); if (t===-1) return '<span style="color:var(--subtle)">—</span>'; const tier=GRAD_TIERS[t]; return `<span class="gr-tier-badge" style="background:${tier.bg};color:${tier.color};font-size:11px">${tier.label}</span>`; })()}</td>
+      <td style="text-align:center">${(() => { const b = getSEMHBaseline(isp.arborId); if (!b) return '<span style="color:var(--subtle)">—</span>'; const r = getSEMHLatestReview(isp.arborId); const latest = r || b; const pct = Math.round(semhTotalScore(latest.scores)/96*100); const col = semhScoreColor(pct); return `<span style="font-size:12px;font-weight:800;color:${col}">${pct}%</span>${r ? '<span style="font-size:10px;color:var(--muted);margin-left:3px">R</span>' : '<span style="font-size:10px;color:var(--muted);margin-left:3px">B</span>'}`;})()}</td>
       <td style="font-size:13px">${isp.staff||'—'}</td>
       <td style="font-size:13px;color:var(--muted);white-space:nowrap">${fmtLastEdited(isp.lastEdited)}${apdrCount?` <span class="badge badge-blue" style="margin-left:4px">${apdrCount} APDR</span>`:''}</td>
       <td onclick="event.stopPropagation()">
@@ -2938,6 +3094,7 @@ function vsOverview(isp, idx) {
           <div><div style="font-size:11px;color:var(--muted);margin-bottom:2px">${k}</div><div style="font-size:13px;font-weight:600">${v}</div></div>`).join('')}
       </div>
       ${buildGRSummaryHtml(isp.arborId)}
+      ${buildSEMHSummaryHtml(isp.arborId)}
     </div>`;
 }
 
@@ -4589,6 +4746,310 @@ function confirmAddCustom(arborId, tierId) {
     const total = tier.columns.length + customEntries.length;
     progressEl.textContent = `${recorded} / ${total} recorded`;
   }
+}
+
+/* ══════════════════════════════════════════════════════════
+   SEMH TRACKER
+══════════════════════════════════════════════════════════ */
+
+function getSEMHAssessments(upn) {
+  const k = String(upn);
+  return (state.semhData[k] && state.semhData[k].assessments) || [];
+}
+function getSEMHBaseline(upn) {
+  return getSEMHAssessments(upn).find(a => a.type === 'baseline') || null;
+}
+function getSEMHLatestReview(upn) {
+  const reviews = getSEMHAssessments(upn).filter(a => a.type === 'review');
+  return reviews.length ? reviews[reviews.length - 1] : null;
+}
+function semhTotalScore(scores) {
+  return SEMH_QUESTIONS.reduce((s, q) => s + (scores[q.id] || 0), 0);
+}
+function semhDomainScore(scores, qIds) {
+  return qIds.reduce((s, id) => s + (scores[id] || 0), 0);
+}
+function semhScoreColor(pct) {
+  if (pct >= 75) return '#1a7a4a';
+  if (pct >= 50) return '#e67e22';
+  return '#b71c1c';
+}
+function semhScoreBg(pct) {
+  if (pct >= 75) return '#e8f5e9';
+  if (pct >= 50) return '#fff8e1';
+  return '#ffebee';
+}
+
+function renderSEMHScreen() {
+  const el = document.getElementById('semh-content');
+  if (!el) return;
+  if (state.user) {
+    const a = document.getElementById('semh-av'), n = document.getElementById('semh-name-bar');
+    if (a) a.textContent = state.user.initials;
+    if (n) n.textContent = state.user.name;
+  }
+
+  // Build student list: all ISP students + any with semhData
+  const seen = new Set();
+  const students = [];
+  (state.isps || []).forEach(isp => {
+    const upn = isp.arborId;
+    if (upn && !seen.has(upn)) { seen.add(upn); students.push({ upn, name: isp.name, year: isp.year, school: isp.school }); }
+  });
+  Object.keys(state.semhData).forEach(upn => {
+    if (!seen.has(upn)) {
+      const d = state.semhData[upn];
+      seen.add(upn);
+      students.push({ upn, name: d.name || upn, year: d.year || '', school: d.school || '' });
+    }
+  });
+
+  const cards = students.map(st => {
+    const baseline = getSEMHBaseline(st.upn);
+    const review   = getSEMHLatestReview(st.upn);
+    const latest   = review || baseline;
+    let scoreHtml = `<div style="font-size:12px;color:var(--muted);font-style:italic">No assessment yet</div>`;
+    let barHtml = '';
+    if (latest) {
+      const tot = semhTotalScore(latest.scores);
+      const pct = Math.round(tot / 96 * 100);
+      const col = semhScoreColor(pct);
+      const bg  = semhScoreBg(pct);
+      const baselinePct = baseline ? Math.round(semhTotalScore(baseline.scores)/96*100) : null;
+      const delta = (review && baselinePct !== null) ? pct - baselinePct : null;
+      scoreHtml = `<div style="display:flex;align-items:center;gap:10px">
+        <div class="semh-score-badge" style="background:${bg};color:${col}">${pct}%</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:${col}">${review ? 'Latest review' : 'Baseline'}</div>
+          <div style="font-size:11px;color:var(--muted)">${latest.date || ''}${latest.staffName ? ' · ' + latest.staffName : ''}</div>
+          ${delta !== null ? `<div style="font-size:11px;font-weight:700;color:${delta>=0?'#1a7a4a':'#b71c1c'}">${delta>=0?'▲':'▼'} ${Math.abs(delta)}% since baseline</div>` : ''}
+        </div>
+      </div>`;
+      barHtml = `<div class="semh-bar-wrap" style="margin-top:10px"><div class="semh-bar-fill" style="width:${pct}%;background:${col}"></div></div>`;
+    }
+    return `<div class="semh-student-card" onclick="openStudentSEMH('${st.upn}')">
+      <div style="font-size:15px;font-weight:700;margin-bottom:2px">${st.name}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">${st.year}${st.school ? ' · ' + st.school : ''}</div>
+      ${scoreHtml}${barHtml}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+      <div>
+        <h1 style="font-size:22px;font-weight:700;margin-bottom:3px">SEMH Tracker</h1>
+        <p style="font-size:14px;color:var(--muted);margin:0">Social, Emotional, Mental Health assessments across all students</p>
+      </div>
+    </div>
+    <div class="semh-student-grid">${cards || '<div style="color:var(--muted);font-size:14px">No ISPs found. Create an ISP to begin SEMH tracking.</div>'}</div>`;
+}
+
+function openStudentSEMH(upn) {
+  const el = document.getElementById('semh-content');
+  if (!el) return;
+  const isp = (state.isps || []).find(i => String(i.arborId) === String(upn));
+  const name = isp ? isp.name : (state.semhData[upn] && state.semhData[upn].name) || upn;
+  const year = isp ? isp.year : '';
+  const school = isp ? isp.school : '';
+  const baseline = getSEMHBaseline(upn);
+  const reviews  = getSEMHAssessments(upn).filter(a => a.type === 'review');
+  const latest   = reviews.length ? reviews[reviews.length-1] : baseline;
+
+  function scoreCard(label, assessment, compareWith) {
+    if (!assessment) return '';
+    const tot = semhTotalScore(assessment.scores);
+    const pct = Math.round(tot/96*100);
+    const col = semhScoreColor(pct);
+    const bg  = semhScoreBg(pct);
+    const domainsHtml = SEMH_DOMAINS.map(d => {
+      const ds = semhDomainScore(assessment.scores, d.qIds);
+      const dpct = Math.round(ds/12*100);
+      const dcol = semhScoreColor(dpct);
+      const way = SEMH_WAYS.find(w => w.id === d.way);
+      const compare = compareWith ? semhDomainScore(compareWith.scores, d.qIds) : null;
+      const delta = compare !== null ? ds - compare : null;
+      return `<div class="semh-domain-card">
+        <div class="semh-domain-name" style="color:${way ? way.color : 'var(--muted)'}">${d.label}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-size:13px;font-weight:700;color:${dcol}">${ds}/12</span>
+          ${delta !== null ? `<span style="font-size:11px;font-weight:700;color:${delta>=0?'#1a7a4a':'#b71c1c'}">${delta>=0?'▲':'▼'}${Math.abs(delta)}</span>` : ''}
+        </div>
+        <div class="semh-bar-wrap"><div class="semh-bar-fill" style="width:${dpct}%;background:${dcol}"></div></div>
+      </div>`;
+    }).join('');
+    return `<div style="border:1.5px solid ${col}40;border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1rem">
+      <div style="padding:12px 16px;background:${bg};border-bottom:1px solid ${col}30;display:flex;align-items:center;gap:12px">
+        <div class="semh-score-badge" style="background:${col};color:white;font-size:16px">${pct}%</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:${col}">${label}</div>
+          <div style="font-size:12px;color:var(--muted)">${assessment.date || '—'}${assessment.staffName ? ' · ' + assessment.staffName : ''}</div>
+        </div>
+      </div>
+      <div style="padding:12px 14px"><div class="semh-domain-grid">${domainsHtml}</div></div>
+    </div>`;
+  }
+
+  const assessmentsHtml = !baseline
+    ? `<div style="padding:2rem;text-align:center;color:var(--muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">No assessments yet. Add a baseline to start tracking.</div>`
+    : scoreCard('Baseline', baseline, null)
+      + reviews.map((r, i) => scoreCard(`Review ${i+1}`, r, baseline)).join('');
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem">
+      <button class="btn-ghost" onclick="renderSEMHScreen()" style="font-size:13px">← All students</button>
+      <div style="width:1px;height:20px;background:var(--border)"></div>
+      <div>
+        <div style="font-size:18px;font-weight:700">${name}</div>
+        <div style="font-size:13px;color:var(--muted)">${year}${school ? ' · ' + school : ''}</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        ${!baseline ? `<button class="btn-primary" onclick="openSEMHModal('${upn}','baseline')">+ Add baseline</button>` : ''}
+        ${baseline ? `<button class="btn-primary" onclick="openSEMHModal('${upn}','review')">+ Add review</button>` : ''}
+      </div>
+    </div>
+    ${assessmentsHtml}`;
+}
+
+let _semhUpn = null;
+function openSEMHModal(upn, type) {
+  _semhUpn = String(upn);
+  const isp = (state.isps||[]).find(i => String(i.arborId) === _semhUpn);
+  const name = isp ? isp.name : upn;
+  document.getElementById('semh-modal-title').textContent = (type === 'baseline' ? 'Baseline Assessment' : 'Review Assessment') + ' — ' + name;
+  document.getElementById('semh-modal-sub').textContent = '32 questions · Score each 0–3 (Never / Sometimes / Usually / Always)';
+  document.getElementById('semh-type-select').value = type;
+  document.getElementById('semh-date-input').value = new Date().toISOString().slice(0,10);
+  document.getElementById('semh-staff-input').value = (state.user && state.user.name) || '';
+  _semhScores = {};
+  renderSEMHQuestions();
+  document.getElementById('semh-modal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSEMHModal() {
+  document.getElementById('semh-modal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+let _semhScores = {};
+function renderSEMHQuestions() {
+  const body = document.getElementById('semh-questions-body');
+  if (!body) return;
+  body.innerHTML = SEMH_WAYS.map(way => {
+    const domains = SEMH_DOMAINS.filter(d => d.way === way.id);
+    const qs = domains.map(dom => {
+      const domQs = SEMH_QUESTIONS.filter(q => q.domain === dom.id);
+      const qRows = domQs.map(q => `
+        <div class="semh-q-row" id="semh-qrow-${q.id}">
+          <div class="semh-q-text"><span style="font-size:11px;color:var(--muted);margin-right:6px">${q.id}.</span>${q.text}</div>
+          <div class="semh-radio-group">
+            ${SEMH_LABELS.map((lbl,v) => `<div class="semh-radio-btn${_semhScores[q.id]===v?' sel'+v:''}" onclick="setSEMHScore(${q.id},${v},this)">${lbl}</div>`).join('')}
+          </div>
+        </div>`).join('');
+      return `<div style="border-bottom:1px solid ${way.color}20;padding:6px 0 4px;margin-top:4px">
+        <div style="font-size:11px;font-weight:700;color:${way.color};text-transform:uppercase;letter-spacing:0.05em;padding:4px 0 6px">${dom.label}</div>
+        ${domQs.map(q => `
+          <div class="semh-q-row" id="semh-qrow-${q.id}">
+            <div class="semh-q-text"><span style="font-size:11px;color:var(--muted);margin-right:6px">${q.id}.</span>${q.text}</div>
+            <div class="semh-radio-group">
+              ${SEMH_LABELS.map((lbl,v) => `<div class="semh-radio-btn${_semhScores[q.id]===v?' sel'+v:''}" onclick="setSEMHScore(${q.id},${v},this)">${lbl}</div>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>`;
+    }).join('');
+    return `<div class="semh-q-group">
+      <div class="semh-q-group-header" style="background:${way.bg};color:${way.color}">${way.label}</div>
+      <div style="padding:4px 14px 10px">${qs}</div>
+    </div>`;
+  }).join('');
+  updateSEMHProgress();
+}
+
+function setSEMHScore(qId, val, el) {
+  _semhScores[qId] = val;
+  const row = document.getElementById(`semh-qrow-${qId}`);
+  if (row) row.querySelectorAll('.semh-radio-btn').forEach((b, v) => {
+    b.className = 'semh-radio-btn' + (v === val ? ' sel' + v : '');
+  });
+  updateSEMHProgress();
+}
+
+function updateSEMHProgress() {
+  const answered = Object.keys(_semhScores).length;
+  const el = document.getElementById('semh-progress-text');
+  if (el) el.textContent = `${answered} / 32 answered`;
+  const btn = document.getElementById('semh-save-btn');
+  if (btn) btn.disabled = answered < 32;
+}
+
+function saveSEMHAssessment() {
+  if (Object.keys(_semhScores).length < 32) { alert('Please answer all 32 questions before saving.'); return; }
+  const type  = document.getElementById('semh-type-select').value;
+  const date  = document.getElementById('semh-date-input').value;
+  const staff = document.getElementById('semh-staff-input').value.trim();
+  if (!date) { alert('Please enter the assessment date.'); return; }
+
+  const upn = _semhUpn;
+  if (!state.semhData[upn]) {
+    const isp = (state.isps||[]).find(i => String(i.arborId) === upn);
+    state.semhData[upn] = { name: isp ? isp.name : upn, year: isp ? isp.year : '', school: isp ? isp.school : '', assessments: [] };
+  }
+  // Baseline: only one allowed — replace if exists
+  if (type === 'baseline') {
+    state.semhData[upn].assessments = state.semhData[upn].assessments.filter(a => a.type !== 'baseline');
+    state.semhData[upn].assessments.unshift({ type, date, staffName: staff, scores: { ..._semhScores }, completedAt: new Date().toISOString() });
+  } else {
+    state.semhData[upn].assessments.push({ type, date, staffName: staff, scores: { ..._semhScores }, completedAt: new Date().toISOString() });
+  }
+  saveSEMHData();
+  closeSEMHModal();
+  openStudentSEMH(upn);
+}
+
+function buildSEMHSummaryHtml(arborId) {
+  const upn = String(arborId);
+  const baseline = getSEMHBaseline(upn);
+  if (!baseline) return '';
+  const review = getSEMHLatestReview(upn);
+  const latest  = review || baseline;
+  const tot     = semhTotalScore(latest.scores);
+  const pct     = Math.round(tot/96*100);
+  const col     = semhScoreColor(pct);
+  const bg      = semhScoreBg(pct);
+  const basePct = Math.round(semhTotalScore(baseline.scores)/96*100);
+  const delta   = review ? pct - basePct : null;
+
+  const domainsHtml = SEMH_DOMAINS.map(d => {
+    const ds    = semhDomainScore(latest.scores, d.qIds);
+    const dpct  = Math.round(ds/12*100);
+    const dcol  = semhScoreColor(dpct);
+    const way   = SEMH_WAYS.find(w => w.id === d.way);
+    const bds   = baseline ? semhDomainScore(baseline.scores, d.qIds) : null;
+    const dd    = (review && bds !== null) ? ds - bds : null;
+    return `<div class="semh-domain-card">
+      <div class="semh-domain-name" style="color:${way ? way.color : 'var(--muted)'}">${d.label}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+        <span style="font-size:12px;font-weight:700;color:${dcol}">${ds}/12</span>
+        ${dd !== null ? `<span style="font-size:10px;font-weight:700;color:${dd>=0?'#1a7a4a':'#b71c1c'}">${dd>=0?'▲':'▼'}${Math.abs(dd)}</span>` : ''}
+      </div>
+      <div class="semh-bar-wrap"><div class="semh-bar-fill" style="width:${dpct}%;background:${dcol}"></div></div>
+    </div>`;
+  }).join('');
+
+  return `
+    <div style="border-top:1px solid var(--border);padding:1rem 1.5rem">
+      <div class="semh-isp-header" style="background:${bg};color:${col};border:1px solid ${col}30;border-radius:var(--radius) var(--radius) 0 0;margin-bottom:0">
+        <span>🧠 SEMH Assessment — ${review ? 'Latest review' : 'Baseline'}: <strong>${pct}%</strong> (${tot}/96)</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${delta !== null ? `<span style="font-size:12px;font-weight:700;color:${delta>=0?'#1a7a4a':'#b71c1c'}">${delta>=0?'▲':'▼'} ${Math.abs(delta)}% since baseline (${basePct}%)</span>` : ''}
+          <button class="btn-secondary" style="font-size:11px;padding:3px 8px;white-space:nowrap" onclick="showScreen('screen-semh');renderSEMHScreen();openStudentSEMH('${upn}')">View / edit</button>
+        </div>
+      </div>
+      <div class="semh-isp-body">
+        <div class="semh-domain-grid">${domainsHtml}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">${review ? 'Review' : 'Baseline'}: ${latest.date || '—'}${latest.staffName ? ' · ' + latest.staffName : ''}${review ? ' &nbsp;·&nbsp; Baseline: ' + baseline.date : ''}</div>
+      </div>
+    </div>`;
 }
 
 /* ── PDF generation (existing ISP) ── */
