@@ -646,21 +646,20 @@
   .semh-domain-card { padding:9px 11px; border-radius:var(--radius); background:var(--bg); border:1px solid var(--border); }
   .semh-domain-name { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
   .semh-q-group { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:1rem; }
-  .semh-q-group-header { font-size:12px; font-weight:700; padding:8px 14px; border-bottom:1px solid var(--border); letter-spacing:0.03em; }
-  .semh-q-row { display:flex; align-items:center; padding:5px 14px; border-bottom:1px solid #f0f0f0; gap:10px; min-height:32px; }
+  .semh-q-group-header { font-size:12px; font-weight:700; padding:9px 16px; border-bottom:1px solid var(--border); letter-spacing:0.03em; display:flex; align-items:center; justify-content:space-between; }
+  .semh-q-row { display:flex; align-items:center; padding:7px 16px; border-bottom:1px solid #f0f0f0; gap:14px; min-height:38px; }
   .semh-q-row:last-child { border-bottom:none; }
-  .semh-q-row:nth-child(even) { background:#fafaf8; }
-  .semh-q-num { font-size:10px; color:var(--teal); font-weight:700; min-width:18px; }
-  .semh-q-text { font-size:12px; color:var(--text); flex:1; line-height:1.35; }
-  .semh-rating-group { display:flex; gap:3px; flex-shrink:0; }
-  .semh-rating-btn { width:36px; height:26px; border:1.5px solid var(--border); border-radius:5px; background:white; cursor:pointer; font-size:11px; font-weight:700; color:var(--muted); display:flex; align-items:center; justify-content:center; transition:all 0.12s; }
-  .semh-rating-btn:hover { border-color:var(--teal); color:var(--teal); }
-  .semh-rating-btn.rb0 { background:#fde8e8; border-color:#ef4444; color:#b91c1c; }
-  .semh-rating-btn.rb1 { background:#fff3e0; border-color:#f59e0b; color:#92400e; }
-  .semh-rating-btn.rb2 { background:#e8f4ff; border-color:#3b82f6; color:#1d4ed8; }
-  .semh-rating-btn.rb3 { background:#e8f5e9; border-color:#22c55e; color:#15803d; }
-  .semh-scale-header { display:flex; justify-content:flex-end; padding:4px 14px 2px; gap:3px; }
-  .semh-scale-lbl { width:36px; text-align:center; font-size:9px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:0.03em; }
+  .semh-q-row:nth-child(odd) { background:#fafaf8; }
+  .semh-q-num { font-size:10px; color:var(--teal); font-weight:700; min-width:20px; flex-shrink:0; }
+  .semh-q-text { font-size:12.5px; color:var(--text); flex:1; line-height:1.35; }
+  .semh-seg-bar { display:flex; gap:2px; width:200px; flex-shrink:0; }
+  .semh-seg { flex:1; height:28px; border-radius:4px; cursor:pointer; border:1.5px solid #ddd; background:#f5f5f5; transition:all 0.12s; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:transparent; user-select:none; }
+  .semh-seg:hover { border-color:#aaa; background:#eee; }
+  .semh-seg.filled-0 { background:#fca5a5; border-color:#ef4444; color:#7f1d1d; }
+  .semh-seg.filled-1 { background:#fcd34d; border-color:#f59e0b; color:#78350f; }
+  .semh-seg.filled-2 { background:#6ee7b7; border-color:#10b981; color:#064e3b; }
+  .semh-seg.filled-3 { background:#34d399; border-color:#059669; color:#064e3b; }
+  .semh-seg-label { font-size:10px; color:var(--muted); min-width:56px; text-align:right; flex-shrink:0; font-weight:600; }
   .semh-isp-header { padding:10px 14px; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:space-between; border-radius:var(--radius) var(--radius) 0 0; }
   .semh-isp-body { padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); }
 </style>
@@ -4958,6 +4957,9 @@ function closeSEMHModal() {
 }
 
 let _semhScores = {};
+const SEMH_SEG_LABELS = ['Never','Sometimes','Usually','Always'];
+const SEMH_SEG_COLORS = ['filled-0','filled-1','filled-2','filled-3'];
+
 function renderSEMHQuestions() {
   const body = document.getElementById('semh-questions-body');
   if (!body) return;
@@ -4965,25 +4967,24 @@ function renderSEMHQuestions() {
     const domains = SEMH_DOMAINS.filter(d => d.way === way.id);
     const domHtml = domains.map(dom => {
       const qs = SEMH_QUESTIONS.filter(q => q.domain === dom.id);
-      const rows = qs.map((q, i) => `
-        <div class="semh-q-row" id="semh-qrow-${q.id}" style="${i % 2 === 1 ? 'background:#fafaf8' : ''}">
+      const rows = qs.map(q => `
+        <div class="semh-q-row" id="semh-qrow-${q.id}">
           <span class="semh-q-num">${q.id}</span>
           <span class="semh-q-text">${q.text}</span>
-          <div class="semh-rating-group">
-            ${[0,1,2,3].map(v => `<button class="semh-rating-btn${_semhScores[q.id]===v?' rb'+v:''}" onclick="setSEMHScore(${q.id},${v})">${v}</button>`).join('')}
+          <div class="semh-seg-bar" id="semh-bar-${q.id}">
+            ${[0,1,2,3].map(v => `<div class="semh-seg${_semhScores[q.id]!==undefined&&v<=_semhScores[q.id]?' '+SEMH_SEG_COLORS[_semhScores[q.id]]:''}" onclick="setSEMHScore(${q.id},${v})" title="${SEMH_SEG_LABELS[v]}"></div>`).join('')}
           </div>
+          <span class="semh-seg-label" id="semh-lbl-${q.id}">${_semhScores[q.id]!==undefined ? SEMH_SEG_LABELS[_semhScores[q.id]] : ''}</span>
         </div>`).join('');
-      return `<div style="border-bottom:1px solid ${way.color}20">
-        <div style="font-size:10px;font-weight:700;color:${way.color};text-transform:uppercase;letter-spacing:0.06em;padding:6px 14px 4px;background:${way.color}0a">${dom.label}</div>
+      return `<div>
+        <div style="font-size:10px;font-weight:700;color:${way.color};text-transform:uppercase;letter-spacing:0.06em;padding:5px 16px 4px;background:${way.color}0d">${dom.label}</div>
         ${rows}
       </div>`;
     }).join('');
     return `<div class="semh-q-group">
-      <div class="semh-q-group-header" style="background:${way.bg};color:${way.color};display:flex;align-items:center;justify-content:space-between">
+      <div class="semh-q-group-header" style="background:${way.bg};color:${way.color}">
         <span>${way.label}</span>
-        <div class="semh-scale-header" style="padding:0;gap:3px">
-          ${['Never','Sometimes','Usually','Always'].map(l => `<div class="semh-scale-lbl">${l}</div>`).join('')}
-        </div>
+        <span style="font-size:10px;font-weight:600;opacity:0.7">Never → Sometimes → Usually → Always</span>
       </div>
       ${domHtml}
     </div>`;
@@ -4993,10 +4994,12 @@ function renderSEMHQuestions() {
 
 function setSEMHScore(qId, val) {
   _semhScores[qId] = val;
-  const row = document.getElementById(`semh-qrow-${qId}`);
-  if (row) row.querySelectorAll('.semh-rating-btn').forEach((b, v) => {
-    b.className = 'semh-rating-btn' + (v === val ? ' rb' + v : '');
+  const bar = document.getElementById(`semh-bar-${qId}`);
+  if (bar) bar.querySelectorAll('.semh-seg').forEach((seg, v) => {
+    seg.className = 'semh-seg' + (v <= val ? ' ' + SEMH_SEG_COLORS[val] : '');
   });
+  const lbl = document.getElementById(`semh-lbl-${qId}`);
+  if (lbl) lbl.textContent = SEMH_SEG_LABELS[val];
   updateSEMHProgress();
 }
 
