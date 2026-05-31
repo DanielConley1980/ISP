@@ -4801,45 +4801,78 @@ function renderSEMHScreen() {
   const totalBaselines = totalTracked;
   const totalReviews = students.reduce((n, s) => n + getSEMHAssessments(s.upn).filter(a => a.type === 'review').length, 0);
 
+  const needBaseline = students.filter(s => !s.baseline).length;
+
   const rows = students.map(st => {
     const initials = st.name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
     const latest = st.review || st.baseline;
-    let badgeHtml = '<span style="font-size:11px;color:var(--muted);font-style:italic">No assessment</span>';
-    if (st.review) badgeHtml = '<span style="padding:3px 10px;background:#e8f5e9;color:#2e7d32;border-radius:20px;font-size:11px;font-weight:600">REVIEW</span>';
-    else if (st.baseline) badgeHtml = '<span style="padding:3px 10px;background:#e8f4ff;color:#1565c0;border-radius:20px;font-size:11px;font-weight:600">BASELINE</span>';
-    const score = latest ? Math.round(semhTotalScore(latest.scores) / 96 * 100) + '%' : '—';
+    const score = latest ? Math.round(semhTotalScore(latest.scores) / 96 * 100) : null;
     const dateStr = latest ? (latest.date || '') : '';
-    return `<div class="semh-student-row" onclick="openStudentSEMH('${st.upn}')">
-      <div class="semh-student-row-left">
-        <div class="semh-student-avatar-sq">${initials}</div>
-        <div>
-          <div style="font-size:14px;font-weight:600;color:#1a2744">${st.name}</div>
-          <div style="font-size:12px;color:var(--muted)">${(st.year||'').replace(/^Year\s*/i,'')}${st.school?' · '+st.school:''}</div>
-        </div>
+
+    let statusColor, statusBg, statusLabel, statusHint;
+    if (st.review) {
+      statusColor = '#2e7d32'; statusBg = '#e8f5e9';
+      statusLabel = 'Review done';
+      statusHint = score + '%' + (dateStr ? ' · ' + dateStr : '');
+    } else if (st.baseline) {
+      statusColor = '#1565c0'; statusBg = '#e8f4ff';
+      statusLabel = 'Baseline only';
+      statusHint = score + '%' + (dateStr ? ' · ' + dateStr : '') + ' — add a review';
+    } else {
+      statusColor = '#b71c1c'; statusBg = '#ffebee';
+      statusLabel = 'No assessment';
+      statusHint = 'Click to add a baseline';
+    }
+
+    const accentColor = st.review ? '#2e7d32' : st.baseline ? '#1565c0' : '#e0e0e0';
+
+    return `<div onclick="openStudentSEMH('${st.upn}')" style="background:white;border-radius:10px;border:1.5px solid #e8e8e8;border-left:5px solid ${accentColor};padding:14px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:box-shadow 0.15s,border-color 0.15s;margin-bottom:8px"
+      onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.10)';this.style.borderColor='${accentColor}'"
+      onmouseout="this.style.boxShadow='';this.style.borderColor='#e8e8e8';this.style.borderLeftColor='${accentColor}'">
+      <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1a2744,#0d6efd);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;flex-shrink:0">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:700;color:#1a2744">${st.name}</div>
+        <div style="font-size:12px;color:#666;margin-top:1px">${(st.year||'').replace(/^Year\s*/i,'') ? 'Year ' + (st.year||'').replace(/^Year\s*/i,'') : ''}${st.school?' · '+st.school:''}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px">
-        ${badgeHtml}
-        <div style="text-align:right;min-width:48px">
-          <div style="font-size:14px;font-weight:700;color:#1a2744">${score}</div>
-          <div style="font-size:10px;color:var(--muted)">${dateStr}</div>
-        </div>
-        <div style="color:var(--muted);font-size:18px">›</div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="display:inline-block;padding:3px 10px;background:${statusBg};color:${statusColor};border-radius:20px;font-size:11px;font-weight:700;margin-bottom:4px">${statusLabel}</div>
+        <div style="font-size:11px;color:#888">${statusHint}</div>
       </div>
+      <div style="color:#bbb;font-size:20px;flex-shrink:0">›</div>
     </div>`;
   }).join('');
 
+  const alertBanner = needBaseline > 0
+    ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:13px;color:#7a5c00">
+        <strong>${needBaseline} student${needBaseline>1?'s':''}</strong> ${needBaseline>1?'have':'has'} no baseline yet — click their name to add one.
+       </div>` : '';
+
   el.innerHTML = `
-    <div style="margin-bottom:20px">
-      <h2 style="font-size:22px;font-weight:700;color:#1a2744;margin-bottom:4px">SEMH Tracker</h2>
-      <p style="font-size:13px;color:var(--muted)">Social, Emotional &amp; Mental Health assessments</p>
+    <div style="background:linear-gradient(135deg,#1a2744,#0d4a6e);border-radius:14px;padding:24px 28px;color:white;margin-bottom:20px">
+      <div style="font-size:22px;font-weight:800;margin-bottom:6px">SEMH Tracker</div>
+      <div style="font-size:13px;opacity:0.8;margin-bottom:16px">Track Social, Emotional &amp; Mental Health across all students on your caseload. Add a baseline, then return to add reviews over time.</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap">
+        <div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:10px 18px;text-align:center">
+          <div style="font-size:26px;font-weight:800">${students.length}</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;opacity:0.75">Students</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:10px 18px;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:#f4c76a">${totalBaselines}</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;opacity:0.75">Baselines</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:10px 18px;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:#a5d6a7">${totalReviews}</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;opacity:0.75">Reviews</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.12);border-radius:8px;padding:10px 18px;text-align:center">
+          <div style="font-size:26px;font-weight:800;color:#ef9a9a">${needBaseline}</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.8px;opacity:0.75">Need Baseline</div>
+        </div>
+      </div>
     </div>
-    <div class="semh-stat-row">
-      <div class="semh-stat-card"><div class="semh-stat-num">${totalTracked}</div><div class="semh-stat-label">Students Tracked</div></div>
-      <div class="semh-stat-card gold"><div class="semh-stat-num">${totalBaselines}</div><div class="semh-stat-label">Baselines</div></div>
-      <div class="semh-stat-card navy"><div class="semh-stat-num">${totalReviews}</div><div class="semh-stat-label">Reviews</div></div>
-    </div>
-    <h3 style="font-size:16px;font-weight:700;color:#1a2744;margin-bottom:10px">All Students</h3>
-    <div class="semh-student-list">${rows || '<div style="padding:32px;text-align:center;color:var(--muted);font-size:14px">No ISPs found. Create an ISP to begin SEMH tracking.</div>'}</div>`;
+    ${alertBanner}
+    <div style="font-size:13px;font-weight:700;color:#1a2744;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px">Your Students — click to assess</div>
+    <div>${rows || '<div style="padding:32px;text-align:center;color:var(--muted);font-size:14px;background:white;border-radius:10px;border:1.5px solid #e8e8e8">No ISPs found. Create an ISP on the Dashboard to begin SEMH tracking.</div>'}</div>`;
 }
 
 // ── Student detail ─────────────────────────────────────────────────────
