@@ -4787,6 +4787,7 @@ const SEMH_RATING_LABELS = ['Never', 'Sometimes', 'Often', 'Always'];
 
 // ── Student list ──────────────────────────────────────────────────────
 function renderSEMHScreen() {
+  window.scrollTo(0, 0);
   const el = document.getElementById('semh-content');
   if (!el) return;
   const students = (state.isps || []).map(isp => {
@@ -4848,6 +4849,7 @@ function openStudentSEMH(upn) {
 }
 
 function _renderSEMHStudentView() {
+  window.scrollTo(0, 0);
   const el = document.getElementById('semh-content');
   if (!el) return;
   const upn = _semhActiveUpn;
@@ -4889,7 +4891,7 @@ function _buildAssessmentCard(label, assessment, compareWith) {
   const tot  = semhTotalScore(assessment.scores);
   const pct  = Math.round(tot / 96 * 100);
   const bTot = compareWith ? semhTotalScore(compareWith.scores) : null;
-  const delta = bTot !== null ? tot - Math.round(bTot / 96 * 100) : null;
+  const delta = bTot !== null ? pct - Math.round(bTot / 96 * 100) : null;
   const domainsHtml = SEMH_DOMAINS.map(d => {
     const ds   = semhDomainScore(assessment.scores, d.qIds);
     const dpct = Math.round(ds / 12 * 100);
@@ -4938,6 +4940,7 @@ function openSEMHQuestionnaire(upn, type) {
 }
 
 function _renderSEMHQuestionnaire() {
+  window.scrollTo(0, 0);
   const el = document.getElementById('semh-content');
   if (!el) return;
   const upn = _semhActiveUpn;
@@ -5042,6 +5045,7 @@ function submitSEMHQuestionnaire() {
 
 // ── Full report ────────────────────────────────────────────────────────
 function _renderSEMHReportScreen() {
+  window.scrollTo(0, 0);
   const el = document.getElementById('semh-content');
   if (!el) return;
   const upn = _semhActiveUpn;
