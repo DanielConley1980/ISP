@@ -645,21 +645,19 @@
   .semh-domain-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .semh-domain-card { padding:9px 11px; border-radius:var(--radius); background:var(--bg); border:1px solid var(--border); }
   .semh-domain-name { font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:5px; }
-  .semh-q-group { border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; margin-bottom:1rem; }
-  .semh-q-group-header { font-size:12px; font-weight:700; padding:9px 16px; border-bottom:1px solid var(--border); letter-spacing:0.03em; display:flex; align-items:center; justify-content:space-between; }
-  .semh-q-row { display:flex; align-items:center; padding:7px 16px; border-bottom:1px solid #f0f0f0; gap:14px; min-height:38px; }
+  .semh-q-group { margin-bottom:0; }
+  .semh-q-group-header { font-size:12px; font-weight:700; padding:8px 16px; letter-spacing:0.03em; }
+  .semh-col-headers { display:flex; padding:4px 16px 2px; }
+  .semh-col-hdr-spacer { width:280px; flex-shrink:0; }
+  .semh-col-hdr-labels { flex:1; display:flex; justify-content:space-between; }
+  .semh-col-hdr-lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:var(--muted); }
+  .semh-q-row { display:flex; align-items:center; padding:5px 16px; border-bottom:1px solid #efefef; gap:14px; min-height:34px; }
   .semh-q-row:last-child { border-bottom:none; }
-  .semh-q-row:nth-child(odd) { background:#fafaf8; }
-  .semh-q-num { font-size:10px; color:var(--teal); font-weight:700; min-width:20px; flex-shrink:0; }
-  .semh-q-text { font-size:12.5px; color:var(--text); flex:1; line-height:1.35; }
-  .semh-seg-bar { display:flex; gap:2px; width:200px; flex-shrink:0; }
-  .semh-seg { flex:1; height:28px; border-radius:4px; cursor:pointer; border:1.5px solid #ddd; background:#f5f5f5; transition:all 0.12s; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:transparent; user-select:none; }
-  .semh-seg:hover { border-color:#aaa; background:#eee; }
-  .semh-seg.filled-0 { background:#fca5a5; border-color:#ef4444; color:#7f1d1d; }
-  .semh-seg.filled-1 { background:#fcd34d; border-color:#f59e0b; color:#78350f; }
-  .semh-seg.filled-2 { background:#6ee7b7; border-color:#10b981; color:#064e3b; }
-  .semh-seg.filled-3 { background:#34d399; border-color:#059669; color:#064e3b; }
-  .semh-seg-label { font-size:10px; color:var(--muted); min-width:56px; text-align:right; flex-shrink:0; font-weight:600; }
+  .semh-q-text { font-size:13px; color:#333; width:280px; flex-shrink:0; line-height:1.3; }
+  .semh-bar-track { flex:1; height:22px; border-radius:3px; background:#e8e8e8; position:relative; cursor:pointer; }
+  .semh-bar-fill { height:100%; border-radius:3px; position:absolute; left:0; top:0; pointer-events:none; transition:width 0.1s; }
+  .semh-bar-dot { width:10px; height:10px; background:#333; border-radius:50%; position:absolute; top:50%; transform:translate(-50%,-50%); pointer-events:none; transition:left 0.1s; }
+  .semh-domain-sep { height:1px; background:var(--border); margin:0; }
   .semh-isp-header { padding:10px 14px; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:space-between; border-radius:var(--radius) var(--radius) 0 0; }
   .semh-isp-body { padding:12px 14px; background:var(--surface); border:1px solid var(--border); border-top:none; border-radius:0 0 var(--radius) var(--radius); }
 </style>
@@ -716,7 +714,6 @@
         <div style="display:flex;align-items:center;gap:8px">
           <button class="btn-secondary" onclick="showScreen('screen-graduated');renderGRScreen()" style="font-size:13px">📊 Graduated Response</button>
           <button class="btn-secondary" onclick="showScreen('screen-semh');renderSEMHScreen()" style="font-size:13px">🧠 SEMH Tracker</button>
-          <button class="btn-secondary" onclick="showSheetSettings()" style="font-size:13px" title="Connect student data sheet">⚙ Sheet</button>
           <span id="sheet-badge" style="font-size:11px;color:var(--muted)"></span>
           <button class="btn-primary" onclick="showScreen('screen-arbor')">＋ New ISP</button>
         </div>
@@ -1029,6 +1026,8 @@
 const API_KEY = 'YOUR_ANTHROPIC_API_KEY_HERE';
 const STORAGE_KEY = 'isp_tool_data_v5';
 const SHEET_URL_KEY = 'isp_sheet_url_v1';
+// Hardwired sheet URL — every user connects to this automatically on startup
+const DEFAULT_SHEET_URL = '';
 
 /* ── State ── */
 /* ══════════════════════════════════════════════════════════════════
@@ -1363,7 +1362,7 @@ function saveISPs() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.isps)); } catch(e) {}
 }
 
-function loadSheetUrl() { return localStorage.getItem(SHEET_URL_KEY) || ''; }
+function loadSheetUrl() { return localStorage.getItem(SHEET_URL_KEY) || DEFAULT_SHEET_URL; }
 function saveSheetUrlLocal(url) { try { localStorage.setItem(SHEET_URL_KEY, url); } catch(e) {} }
 
 async function loadSheetData() {
@@ -4957,49 +4956,68 @@ function closeSEMHModal() {
 }
 
 let _semhScores = {};
-const SEMH_SEG_LABELS = ['Never','Sometimes','Usually','Always'];
-const SEMH_SEG_COLORS = ['filled-0','filled-1','filled-2','filled-3'];
+const SEMH_BAR_LABELS = ['Never','Sometimes','Usually','Always'];
+// Dot stops at 0%, 33%, 67%, 100% of bar width
+const SEMH_DOT_PCTS = [3, 34, 67, 97];
 
 function renderSEMHQuestions() {
   const body = document.getElementById('semh-questions-body');
   if (!body) return;
   body.innerHTML = SEMH_WAYS.map(way => {
     const domains = SEMH_DOMAINS.filter(d => d.way === way.id);
+    const colHdr = `<div class="semh-col-headers">
+      <div class="semh-col-hdr-spacer"></div>
+      <div class="semh-col-hdr-labels">
+        ${SEMH_BAR_LABELS.map(l => `<span class="semh-col-hdr-lbl">${l}</span>`).join('')}
+      </div>
+    </div>`;
     const domHtml = domains.map(dom => {
       const qs = SEMH_QUESTIONS.filter(q => q.domain === dom.id);
-      const rows = qs.map(q => `
-        <div class="semh-q-row" id="semh-qrow-${q.id}">
-          <span class="semh-q-num">${q.id}</span>
+      const rows = qs.map(q => {
+        const scored = _semhScores[q.id] !== undefined;
+        const val = _semhScores[q.id] || 0;
+        const fillPct = scored ? SEMH_DOT_PCTS[val] : 0;
+        return `<div class="semh-q-row" style="background:${way.bg}22">
           <span class="semh-q-text">${q.text}</span>
-          <div class="semh-seg-bar" id="semh-bar-${q.id}">
-            ${[0,1,2,3].map(v => `<div class="semh-seg${_semhScores[q.id]!==undefined&&v<=_semhScores[q.id]?' '+SEMH_SEG_COLORS[_semhScores[q.id]]:''}" onclick="setSEMHScore(${q.id},${v})" title="${SEMH_SEG_LABELS[v]}"></div>`).join('')}
+          <div class="semh-bar-track" id="semh-track-${q.id}" onclick="semhBarClick(${q.id},event)">
+            <div class="semh-bar-fill" id="semh-fill-${q.id}" style="width:${scored?fillPct+'%':'0%'};background:${way.color};opacity:0.75"></div>
+            ${scored ? `<div class="semh-bar-dot" id="semh-dot-${q.id}" style="left:${fillPct}%"></div>` : `<div class="semh-bar-dot" id="semh-dot-${q.id}" style="left:0%;opacity:0"></div>`}
           </div>
-          <span class="semh-seg-label" id="semh-lbl-${q.id}">${_semhScores[q.id]!==undefined ? SEMH_SEG_LABELS[_semhScores[q.id]] : ''}</span>
-        </div>`).join('');
-      return `<div>
-        <div style="font-size:10px;font-weight:700;color:${way.color};text-transform:uppercase;letter-spacing:0.06em;padding:5px 16px 4px;background:${way.color}0d">${dom.label}</div>
-        ${rows}
-      </div>`;
-    }).join('');
-    return `<div class="semh-q-group">
-      <div class="semh-q-group-header" style="background:${way.bg};color:${way.color}">
-        <span>${way.label}</span>
-        <span style="font-size:10px;font-weight:600;opacity:0.7">Never → Sometimes → Usually → Always</span>
-      </div>
+        </div>`;
+      }).join('');
+      return rows;
+    }).join('<div class="semh-domain-sep"></div>');
+
+    return `<div class="semh-q-group" style="background:white;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:12px">
+      <div class="semh-q-group-header" style="background:${way.color};color:white">${way.label}</div>
+      ${colHdr}
       ${domHtml}
     </div>`;
   }).join('');
   updateSEMHProgress();
 }
 
+function semhBarClick(qId, event) {
+  const track = document.getElementById(`semh-track-${qId}`);
+  if (!track) return;
+  const rect = track.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(100, (event.clientX - rect.left) / rect.width * 100));
+  // Snap to nearest of 4 stops
+  const val = pct < 16.5 ? 0 : pct < 50 ? 1 : pct < 83.5 ? 2 : 3;
+  setSEMHScore(qId, val);
+}
+
 function setSEMHScore(qId, val) {
   _semhScores[qId] = val;
-  const bar = document.getElementById(`semh-bar-${qId}`);
-  if (bar) bar.querySelectorAll('.semh-seg').forEach((seg, v) => {
-    seg.className = 'semh-seg' + (v <= val ? ' ' + SEMH_SEG_COLORS[val] : '');
-  });
-  const lbl = document.getElementById(`semh-lbl-${qId}`);
-  if (lbl) lbl.textContent = SEMH_SEG_LABELS[val];
+  const fill = document.getElementById(`semh-fill-${qId}`);
+  const dot  = document.getElementById(`semh-dot-${qId}`);
+  // Find the way colour for this question
+  const dom  = SEMH_DOMAINS.find(d => d.qIds.includes(qId));
+  const way  = dom ? SEMH_WAYS.find(w => w.id === dom.way) : null;
+  const col  = way ? way.color : 'var(--teal)';
+  const pct  = SEMH_DOT_PCTS[val];
+  if (fill) { fill.style.width = pct + '%'; fill.style.background = col; fill.style.opacity = '0.75'; }
+  if (dot)  { dot.style.left = pct + '%'; dot.style.opacity = '1'; }
   updateSEMHProgress();
 }
 
