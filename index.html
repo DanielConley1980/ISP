@@ -5345,7 +5345,7 @@ function _semhTargetsHtml(upn, scores) {
     }).join('');
 
     return `<div style="border-bottom:1px solid #eee">
-      <div onclick="var s=document.getElementById('${secId}');s.style.display=s.style.display==='none'?'block':'none'" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;background:${isWeak?'#fafafa':'white'}">
+      <div onclick="semhToggleTgtSec('${secId}')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;background:${isWeak?'#fafafa':'white'}">
         <div style="width:10px;height:10px;border-radius:50%;background:${colour};flex-shrink:0"></div>
         <div style="font-size:13px;font-weight:600;color:#1a2744;flex:1">${d.label}${isWeak?' <span style="font-size:10px;color:'+colour+';font-weight:400">· needs attention</span>':''}</div>
         <div style="font-size:11px;color:#aaa">${checkedCount}/${domTargets.length} in place</div>
@@ -5396,6 +5396,11 @@ function semhSaveTargets(upn) {
   saveSEMHData();
   const saveBtn = document.getElementById('semh-targets-save');
   if (saveBtn) { saveBtn.textContent = 'Saved ✓'; saveBtn.disabled = true; setTimeout(() => { saveBtn.textContent = '💾 Save'; saveBtn.disabled = false; saveBtn.style.display = 'none'; }, 1500); }
+}
+
+function semhToggleTgtSec(secId) {
+  const s = document.getElementById(secId);
+  if (s) s.style.display = s.style.display === 'none' ? 'block' : 'none';
 }
 
 let _semhViewScores = {};
