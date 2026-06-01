@@ -5245,7 +5245,7 @@ function _semhGaugeSvg(score, maxScore, label) {
   const fill = pct * arcLen;
   const gap  = arcLen - fill;
   return `<svg viewBox="0 0 140 80" style="width:180px;height:105px;display:block">
-    <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="#e8e8e8" stroke-width="13" stroke-linecap="round"/>
+    <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="#e8e8e8" stroke-width="13" stroke-linecap="butt"/>
     <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="butt"
       stroke-dasharray="${fill.toFixed(1)} ${gap.toFixed(1)}" pathLength="${arcLen.toFixed(1)}"/>
     <text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="22" font-weight="800" fill="#1a2744" font-family="inherit">${score}</text>
@@ -5257,9 +5257,9 @@ function _semhGaugeSvg(score, maxScore, label) {
 
 // Horizontal bar rows (read-only profile view)
 function _semhBarsHtml(scores, compareScores, editableUpn) {
-  const GREY_ARROWS = '‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹';
+  const LABEL_W = '320px';
   const colHdr = `<div style="display:flex;align-items:center;padding:3px 0 3px;border-bottom:1px solid #eee;margin-bottom:2px">
-    <div style="width:280px;flex-shrink:0"></div>
+    <div style="width:${LABEL_W};flex-shrink:0"></div>
     ${['Never','Sometimes','Usually','Always'].map(l=>`<div style="flex:1;text-align:center;font-size:10px;font-weight:600;color:#bbb;letter-spacing:0.4px">${l}</div>`).join('')}
     <div style="width:32px"></div>
   </div>`;
@@ -5274,7 +5274,6 @@ function _semhBarsHtml(scores, compareScores, editableUpn) {
         const pct  = hasSc ? Math.round(sc / 3 * 100) : 0;
         const bPct = bsc !== null ? Math.round(bsc / 3 * 100) : null;
         const dd   = (hasSc && bsc !== null) ? sc - bsc : null;
-        const isDecline = dd !== null && dd < 0;
         const bg   = alt++ % 2 === 1 ? '#f9f9f9' : 'white';
         const deltaHtml = dd !== null
           ? `<div style="width:28px;text-align:right;font-size:11px;font-weight:700;color:${dd>0?'#1a7a4a':dd<0?'#c0392b':'#aaa'};flex-shrink:0">${dd>0?'+':''}${dd||''}</div>`
@@ -5286,14 +5285,13 @@ function _semhBarsHtml(scores, compareScores, editableUpn) {
           barInner += `<div style="position:absolute;left:0;top:0;height:100%;width:${bPct}%;background:#d4d4d4;border-radius:2px"></div>`;
           barInner += `<div id="svb-bf-${q.id}" style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:${way.color};border-radius:2px;transition:width 0.12s"></div>`;
           barInner += `<div id="svb-dot-${q.id}" class="semh-bar-dot" style="left:${pct}%"></div>`;
-          if (isDecline) barInner += `<div id="svb-arr-${q.id}" style="position:absolute;left:${pct}%;right:${100-bPct}%;top:0;bottom:0;display:flex;align-items:center;overflow:hidden;padding-left:6px;pointer-events:none"><span style="font-size:13px;color:#ccc;letter-spacing:1px;white-space:nowrap">${GREY_ARROWS}</span></div>`;
         } else {
           barInner += `<div id="svb-bf-${q.id}" style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:${hasSc?way.color:'#e8e8e8'};border-radius:2px"></div>`;
           if (hasSc) barInner += `<div class="semh-bar-dot" style="left:${pct}%"></div>`;
         }
 
         rows += `<div id="svb-row-${q.id}" style="display:flex;align-items:center;padding:5px 0;background:${bg};border-bottom:1px solid #f2f2f2" ${clickAttr}>
-          <div style="width:280px;flex-shrink:0;font-size:12px;color:#345;line-height:1.3;padding-right:12px">${q.text}</div>
+          <div style="width:${LABEL_W};flex-shrink:0;font-size:11.5px;color:#345;line-height:1.3;padding-right:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${q.text}">${q.text}</div>
           <div class="semh-bar-track" style="flex:1;position:relative">${barInner}</div>
           <div id="svb-vb-${q.id}" style="width:0;overflow:visible"></div>
           ${deltaHtml}
@@ -5302,51 +5300,69 @@ function _semhBarsHtml(scores, compareScores, editableUpn) {
     });
   });
 
-  const legend = `<div style="display:flex;gap:16px;flex-wrap:wrap;padding:10px 0 4px;justify-content:center">
+  const legend = `<div style="display:flex;gap:20px;flex-wrap:wrap;padding:10px 0 4px;justify-content:center;width:100%">
     ${SEMH_WAYS.map(w=>`<div style="display:flex;align-items:center;gap:5px"><div style="width:14px;height:14px;border-radius:2px;background:${w.color}"></div><span style="font-size:11px;color:#666">${w.label}</span></div>`).join('')}
   </div>`;
   const bottomHdrs = `<div style="display:flex;padding:6px 0 0">
-    <div style="width:280px;flex-shrink:0"></div>
+    <div style="width:${LABEL_W};flex-shrink:0"></div>
     ${['Never','Sometimes','Usually','Always'].map(l=>`<div style="flex:1;text-align:center;font-size:11px;color:#bbb">${l}</div>`).join('')}
     <div style="width:32px"></div>
   </div>`;
 
   return `<div style="background:white;border-radius:var(--radius-lg);padding:10px 14px 6px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">
     ${colHdr}${rows}${bottomHdrs}
-    <hr style="border:none;border-top:1px solid #eee;margin:10px 0 6px">${legend}
+    <hr style="border:none;border-top:1px solid #eee;margin:10px 0 6px">
+    <div style="text-align:center">${legend}</div>
   </div>`;
 }
 
-// Suggested targets section
+// Suggested targets section — grouped by domain
 function _semhTargetsHtml(upn, scores) {
   const rec = state.semhData[upn];
   const savedTargets = (rec && rec.targets) || {};
 
-  // Find domains with low average (< 1.5 average)
   const weakDomains = new Set();
   SEMH_DOMAINS.forEach(d => {
     const avg = d.qIds.reduce((s,id) => s + (scores[id]||0), 0) / d.qIds.length;
     if (avg < 1.8) weakDomains.add(d.id);
   });
 
-  const rows = SEMH_TARGETS.map(t => {
-    const relevant = t.domains.some(d => weakDomains.has(d));
-    const saved = savedTargets[t.id];
-    const checked = saved && saved.date;
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid #f0f0f0;${!relevant?'opacity:0.45':''}">
-      <div id="semh-tgt-dot-${t.id}" onclick="semhToggleTarget('${upn}','${t.id}')" style="cursor:pointer;width:18px;height:18px;border-radius:50%;border:2px solid ${checked?'#1a7a4a':'#ccc'};background:${checked?'#1a7a4a':'white'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:white">${checked?'✓':''}</div>
-      <div id="semh-tgt-lbl-${t.id}" style="flex:1;font-size:12px;color:${checked?'#1a7a4a':'#333'}">${t.text}</div>
-      <div id="semh-tgt-date-${t.id}" style="font-size:11px;color:#aaa;flex-shrink:0">${checked?saved.date:''}</div>
+  const sections = SEMH_DOMAINS.map(d => {
+    const way = SEMH_WAYS.find(w => w.id === d.way);
+    const colour = way ? way.color : '#555';
+    const domTargets = SEMH_TARGETS.filter(t => t.domains.includes(d.id));
+    const checkedCount = domTargets.filter(t => savedTargets[t.id]?.date).length;
+    const isWeak = weakDomains.has(d.id);
+    const secId = `semh-tgt-sec-${d.id}-${upn.replace(/\W/g,'_')}`;
+
+    const rows = domTargets.map(t => {
+      const saved = savedTargets[t.id];
+      const checked = !!(saved && saved.date);
+      return `<div style="display:flex;align-items:center;gap:10px;padding:7px 16px;border-bottom:1px solid #f4f4f4">
+        <div id="semh-tgt-dot-${t.id}" onclick="semhToggleTarget('${upn}','${t.id}')" style="cursor:pointer;width:18px;height:18px;border-radius:50%;border:2px solid ${checked?colour:'#ccc'};background:${checked?colour:'white'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:white">${checked?'✓':''}</div>
+        <div id="semh-tgt-lbl-${t.id}" style="flex:1;font-size:12px;color:${checked?colour:'#333'}">${t.text}</div>
+        <div id="semh-tgt-date-${t.id}" style="font-size:11px;color:#aaa;flex-shrink:0;min-width:72px;text-align:right">${checked?saved.date:''}</div>
+      </div>`;
+    }).join('');
+
+    return `<div style="border-bottom:1px solid #eee">
+      <div onclick="document.getElementById('${secId}').classList.toggle('open')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;background:${isWeak?'#fafafa':'white'}">
+        <div style="width:10px;height:10px;border-radius:50%;background:${colour};flex-shrink:0"></div>
+        <div style="font-size:13px;font-weight:600;color:#1a2744;flex:1">${d.label}${isWeak?' <span style="font-size:10px;color:'+colour+';font-weight:400">· needs attention</span>':''}</div>
+        <div style="font-size:11px;color:#aaa">${checkedCount}/${domTargets.length} in place</div>
+        <span style="font-size:14px;color:#aaa">›</span>
+      </div>
+      <div id="${secId}" style="display:none">${rows}</div>
     </div>`;
   }).join('');
 
-  return `<div style="background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-top:20px">
+  return `<div style="background:white;border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;margin-top:20px">
     <div style="padding:12px 16px;background:#1a2744;color:white;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:space-between">
       <span>🎯 Suggested Targets &amp; Interventions</span>
       <button id="semh-targets-save" onclick="semhSaveTargets('${upn}')" style="display:none;padding:5px 14px;background:white;color:#1a2744;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">💾 Save</button>
     </div>
-    <div style="padding:6px 14px;background:#f9f9f7;border-bottom:1px solid #eee;font-size:11px;color:#888">Highlighted rows relate to the student's lower-scoring domains. Click a circle to mark as in place.</div>
-    ${rows}
+    <div style="padding:6px 14px;background:#f9f9f7;border-bottom:1px solid #eee;font-size:11px;color:#888">Click a section to expand. Tick interventions to mark as in place.</div>
+    ${sections}
   </div>`;
 }
 
@@ -5397,14 +5413,8 @@ function semhViewBarClick(evt, qId, wayColor, bScore, upn) {
   const pct = Math.round(val / 3 * 100);
   const fill = document.getElementById(`svb-bf-${qId}`);
   const dot  = document.getElementById(`svb-dot-${qId}`);
-  const arrEl = document.getElementById(`svb-arr-${qId}`);
   if (fill) { fill.style.width = pct + '%'; fill.style.background = wayColor; }
   if (dot)  { dot.style.left = pct + '%'; }
-  if (bScore !== null && bScore !== undefined) {
-    if (val < bScore) {
-      if (arrEl) arrEl.style.left = pct + '%';
-    } else if (arrEl) arrEl.remove();
-  }
   // update gauge
   const gaugeEl = document.getElementById('semh-sv-gauge');
   if (gaugeEl) gaugeEl.innerHTML = _semhGaugeSvg(semhTotalScore(_semhViewScores), 96);
@@ -5550,27 +5560,26 @@ function _semhDomainCardsHtml(scores, compareScores) {
     const bds  = compareScores ? d.qIds.reduce((s,id) => s + (compareScores[id]||0), 0) : null;
     const dpct = Math.round(ds / 12 * 100);
     const bpct = bds !== null ? Math.round(bds / 12 * 100) : null;
-    const dd   = bds !== null ? ds - bds : null;
     const ddPct = bds !== null && bds > 0 ? Math.round((ds - bds) / bds * 100) : (bds === 0 && ds > 0 ? 100 : null);
     const deltaHtml = ddPct !== null
       ? `<span style="font-size:11px;font-weight:700;color:${ddPct>=0?'#1a7a4a':'#c0392b'}">${ddPct>=0?'+':''}${ddPct}%</span>`
       : '';
     const barInner = bpct !== null
-      ? `<div style="position:absolute;left:0;top:0;height:100%;width:${bpct}%;background:#bbb;border-radius:3px"></div>
-         <div style="position:absolute;left:0;top:0;height:100%;width:${dpct}%;background:#555;border-radius:3px;transition:width 0.4s"></div>`
-      : `<div style="position:absolute;left:0;top:0;height:100%;width:${dpct}%;background:#555;border-radius:3px"></div>`;
+      ? `<div style="position:absolute;left:0;top:0;height:100%;width:${bpct}%;background:#d0d0d0;border-radius:2px"></div>
+         <div style="position:absolute;left:0;top:0;height:100%;width:${dpct}%;background:#4a6080;border-radius:2px;transition:width 0.4s"></div>`
+      : `<div style="position:absolute;left:0;top:0;height:100%;width:${dpct}%;background:#4a6080;border-radius:2px"></div>`;
     return `<div style="background:white;border:1px solid #e8e8e8;border-radius:8px;padding:12px 14px">
-      <div style="font-size:13px;font-weight:700;color:#1a2744;margin-bottom:8px">${d.label}</div>
-      <div style="position:relative;height:8px;background:#e8e8e8;border-radius:3px;overflow:hidden;margin-bottom:6px">${barInner}</div>
+      <div style="font-size:13px;font-weight:600;color:#1a2744;margin-bottom:10px">${d.label}</div>
+      <div style="position:relative;height:10px;background:#e8e8e8;border-radius:2px;overflow:hidden;margin-bottom:8px">${barInner}</div>
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:12px;font-weight:700;color:#333">${ds} / 12</span>
+        <span style="font-size:13px;font-weight:700;color:#333">${ds} / 12</span>
         ${deltaHtml}
       </div>
     </div>`;
   }).join('');
   return `<div style="margin-top:20px">
     <div style="font-size:13px;font-weight:700;color:#1a2744;margin-bottom:10px">Domain Overview</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">${cards}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">${cards}</div>
   </div>`;
 }
 
@@ -5689,20 +5698,6 @@ function semhRate(qId, val, wayColor, bScore) {
     }
     dot.style.left = pct+'%';
     dot.style.background = '#111';
-    // Update grey decline arrows
-    const arrEl = document.getElementById(`semh-arr-${qId}`);
-    if (bScore !== null && bScore !== undefined) {
-      if (val < bScore) {
-        if (arrEl) { arrEl.style.left = pct+'%'; }
-        else if (track) {
-          const a = document.createElement('div');
-          a.id = `semh-arr-${qId}`;
-          a.style.cssText = `position:absolute;left:${pct}%;right:0;top:0;bottom:0;display:flex;align-items:center;overflow:hidden;padding-left:8px;pointer-events:none`;
-          a.innerHTML = `<span style="font-size:11px;color:#ccc;letter-spacing:1px;white-space:nowrap">‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹</span>`;
-          track.appendChild(a);
-        }
-      } else if (arrEl) { arrEl.remove(); }
-    }
   }
   const vb = document.getElementById(`semh-vb-${qId}`);
   if (vb) vb.textContent = val;
@@ -5794,7 +5789,6 @@ function _renderSEMHQuestionnaire() {
   </div>`;
 
   // Flat question list — colour by way, grey decline arrows
-  const GREY_ARROWS = '‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹ ‹';
   let rows = '';
   let alt = 0;
   SEMH_WAYS.forEach(way => {
@@ -5806,7 +5800,6 @@ function _renderSEMHQuestionnaire() {
         const pct    = hasSc ? Math.round(cur/3*100) : 0;
         const bPct   = bScore !== null ? Math.round(bScore/3*100) : null;
         const delta  = (hasSc && bScore !== null) ? cur - bScore : null;
-        const isDecline = delta !== null && delta < 0;
         const bg = alt++ % 2 === 1 ? '#f9f9f9' : 'white';
 
         // delta badge on right
@@ -5822,13 +5815,7 @@ function _renderSEMHQuestionnaire() {
           const reviewPct = hasSc ? pct : bPct;
           // coloured review fill
           barInner += `<div id="semh-bf-${q.id}" style="position:absolute;left:0;top:0;height:100%;width:${reviewPct}%;background:${way.color};border-radius:2px;transition:width 0.12s"></div>`;
-          // dot
           barInner += `<div id="semh-dot-${q.id}" class="semh-bar-dot" style="left:${reviewPct}%;background:#111"></div>`;
-          // grey decline arrows
-          if (isDecline) {
-            barInner += `<div id="semh-arr-${q.id}" style="position:absolute;left:${reviewPct}%;right:0;top:0;bottom:0;display:flex;align-items:center;overflow:hidden;padding-left:8px;pointer-events:none">
-              <span style="font-size:11px;color:#ccc;letter-spacing:1px;white-space:nowrap">${GREY_ARROWS}</span></div>`;
-          }
         } else {
           barInner += `<div id="semh-bf-${q.id}" style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:${hasSc?way.color:'transparent'};border-radius:2px;transition:width 0.12s"></div>`;
           if (hasSc) barInner += `<div id="semh-dot-${q.id}" class="semh-bar-dot" style="left:${pct}%"></div>`;
@@ -5890,6 +5877,7 @@ function _renderSEMHQuestionnaire() {
       <hr style="border:none;border-top:1px solid #eee;margin:12px 0 8px">
       ${legend}
     </div>
+    ${Object.keys(_semhScores).length >= 8 ? `<div style="margin-top:20px">${_semhDomainCardsHtml(_semhScores, baseScores)}</div>` : ''}
     <div style="padding:16px 0 32px"></div>`;
 
   _semhUpdateSaveBtn();
