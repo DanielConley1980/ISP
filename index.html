@@ -5239,14 +5239,13 @@ function openStudentSEMH(upn) {
 // Semicircle gauge SVG
 function _semhGaugeSvg(score, maxScore, label) {
   const pct  = Math.min(1, score / maxScore);
-  const col  = pct >= 0.75 ? '#1a7a4a' : pct >= 0.50 ? '#e67e22' : '#b71c1c';
   const r = 54, cx = 70, cy = 70;
   const arcLen = Math.PI * r;
   const fill = pct * arcLen;
   const gap  = arcLen - fill;
   return `<svg viewBox="0 0 140 80" style="width:180px;height:105px;display:block">
     <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="#e8e8e8" stroke-width="13" stroke-linecap="butt"/>
-    <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="${col}" stroke-width="13" stroke-linecap="butt"
+    <path d="M ${cx-r} ${cy} A ${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="#4a6080" stroke-width="13" stroke-linecap="butt"
       stroke-dasharray="${fill.toFixed(1)} ${gap.toFixed(1)}" pathLength="${arcLen.toFixed(1)}"/>
     <text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="22" font-weight="800" fill="#1a2744" font-family="inherit">${score}</text>
     <text x="${cx}" y="${cy+10}" text-anchor="middle" font-size="9" fill="#aaa" font-family="inherit">/ ${maxScore}</text>
@@ -5346,7 +5345,7 @@ function _semhTargetsHtml(upn, scores) {
     }).join('');
 
     return `<div style="border-bottom:1px solid #eee">
-      <div onclick="document.getElementById('${secId}').classList.toggle('open')" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;background:${isWeak?'#fafafa':'white'}">
+      <div onclick="var s=document.getElementById('${secId}');s.style.display=s.style.display==='none'?'block':'none'" style="display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;user-select:none;background:${isWeak?'#fafafa':'white'}">
         <div style="width:10px;height:10px;border-radius:50%;background:${colour};flex-shrink:0"></div>
         <div style="font-size:13px;font-weight:600;color:#1a2744;flex:1">${d.label}${isWeak?' <span style="font-size:10px;color:'+colour+';font-weight:400">· needs attention</span>':''}</div>
         <div style="font-size:11px;color:#aaa">${checkedCount}/${domTargets.length} in place</div>
@@ -5418,6 +5417,9 @@ function semhViewBarClick(evt, qId, wayColor, bScore, upn) {
   // update gauge
   const gaugeEl = document.getElementById('semh-sv-gauge');
   if (gaugeEl) gaugeEl.innerHTML = _semhGaugeSvg(semhTotalScore(_semhViewScores), 96);
+  // update domain cards
+  const dcEl = document.getElementById('semh-sv-domain-cards');
+  if (dcEl) { const bl = getSEMHBaseline(upn); dcEl.innerHTML = _semhDomainCardsHtml(_semhViewScores, bl ? bl.scores : null); }
   // show save button
   const saveBtn = document.getElementById('semh-sv-save');
   if (saveBtn) saveBtn.style.display = '';
@@ -5548,8 +5550,8 @@ function _renderSEMHStudentView() {
     ${!baseline ? `<div style="padding:2.5rem;text-align:center;color:var(--muted);font-size:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg)">No assessments yet. Click "+ Add baseline" to begin.</div>` : `
       ${tabsHtml}
       <div style="display:flex;justify-content:center">${gaugeHtml}</div>
+      <div id="semh-sv-domain-cards" style="margin-top:16px">${domainCardsHtml}</div>
       <div style="margin-top:12px">${barsHtml}</div>
-      ${domainCardsHtml}
       ${targetsHtml}
     `}`;
 }
@@ -5565,19 +5567,19 @@ function _semhDomainCardsHtml(scores, compareScores) {
       ? `<span style="font-size:11px;font-weight:700;color:${ddPct>=0?'#1a7a4a':'#c0392b'}">${ddPct>=0?'+':''}${ddPct}%</span>`
       : '';
     const barInner = bpct !== null
-      ? `<div style="position:absolute;left:0;top:0;height:100%;width:${bpct}%;background:#d0d0d0;border-radius:2px"></div>
-         <div style="position:absolute;left:0;top:0;height:100%;width:${dpct}%;background:#4a6080;border-radius:2px;transition:width 0.4s"></div>`
-      : `<div style="position:absolute;left:0;top:0;height:100%;width:${dpct}%;background:#4a6080;border-radius:2px"></div>`;
-    return `<div style="background:white;border:1px solid #e8e8e8;border-radius:8px;padding:12px 14px">
-      <div style="font-size:13px;font-weight:600;color:#1a2744;margin-bottom:10px">${d.label}</div>
-      <div style="position:relative;height:10px;background:#e8e8e8;border-radius:2px;overflow:hidden;margin-bottom:8px">${barInner}</div>
+      ? `<div style="position:absolute;left:0;top:0;height:100%;width:${bpct}%;background:#d0d0d0;border-radius:0"></div>
+         <div style="position:absolute;left:0;top:0;height:100%;width:${dpct}%;background:#4a6080;border-radius:0;transition:width 0.4s"></div>`
+      : `<div style="position:absolute;left:0;top:0;height:100%;width:${dpct}%;background:#4a6080;border-radius:0"></div>`;
+    return `<div style="background:white;border:1px solid #e8e8e8;border-radius:6px;padding:12px 14px">
+      <div style="font-size:12px;font-weight:600;color:#1a2744;margin-bottom:8px">${d.label}</div>
+      <div style="position:relative;height:10px;background:#e8e8e8;border-radius:0;overflow:hidden;margin-bottom:6px">${barInner}</div>
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;font-weight:700;color:#333">${ds} / 12</span>
+        <span style="font-size:12px;font-weight:700;color:#333">${ds} / 12</span>
         ${deltaHtml}
       </div>
     </div>`;
   }).join('');
-  return `<div style="margin-top:20px">
+  return `<div>
     <div style="font-size:13px;font-weight:700;color:#1a2744;margin-bottom:10px">Domain Overview</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">${cards}</div>
   </div>`;
@@ -5707,6 +5709,9 @@ function semhRate(qId, val, wayColor, bScore) {
   const tot = semhTotalScore(_semhScores);
   const gaugeEl = document.getElementById('semh-live-gauge');
   if (gaugeEl) gaugeEl.innerHTML = _semhGaugeSvg(tot, 96);
+  // Live domain cards update
+  const dcEl = document.getElementById('semh-live-domain-cards');
+  if (dcEl) dcEl.innerHTML = _semhDomainCardsHtml(_semhScores, null);
   // Progress
   const done = SEMH_QUESTIONS.filter(q => _semhScores[q.id] !== undefined).length;
   const pf = document.getElementById('semh-prog-fill');
@@ -5870,6 +5875,7 @@ function _renderSEMHQuestionnaire() {
     </div>
     ${baselineWarning}
     ${gaugeSection}
+    <div id="semh-live-domain-cards" style="margin-bottom:16px">${_semhDomainCardsHtml(_semhScores, baseScores)}</div>
     <div style="background:var(--surface);border-radius:var(--radius-lg);padding:12px 16px 4px;box-shadow:0 1px 4px rgba(0,0,0,0.05)">
       ${colHdrRow}
       ${rows}
@@ -5877,7 +5883,6 @@ function _renderSEMHQuestionnaire() {
       <hr style="border:none;border-top:1px solid #eee;margin:12px 0 8px">
       ${legend}
     </div>
-    ${Object.keys(_semhScores).length >= 8 ? `<div style="margin-top:20px">${_semhDomainCardsHtml(_semhScores, baseScores)}</div>` : ''}
     <div style="padding:16px 0 32px"></div>`;
 
   _semhUpdateSaveBtn();
