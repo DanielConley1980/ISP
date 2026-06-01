@@ -648,7 +648,7 @@
   .semh-student-row-left { display:flex; align-items:center; gap:12px; }
   .semh-student-avatar-sq { width:38px; height:38px; border-radius:9px; background:linear-gradient(135deg,var(--teal),#1a2744); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:13px; flex-shrink:0; }
   .semh-score-badge { display:inline-flex; align-items:center; justify-content:center; width:46px; height:46px; border-radius:50%; font-size:14px; font-weight:800; flex-shrink:0; }
-  .semh-bar-wrap { background:#e8e8e8; border-radius:4px; height:7px; overflow:hidden; margin-top:4px; position:relative; }
+  .semh-bar-wrap { background:#e8e8e8; border-radius:3px; height:14px; overflow:hidden; margin-top:6px; position:relative; }
   .semh-bar-fill { height:100%; border-radius:3px; position:absolute; left:0; top:0; pointer-events:none; transition:width 0.1s; }
   .semh-domain-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .semh-domain-card { padding:9px 11px; border-radius:var(--radius); background:var(--bg); border:1px solid var(--border); }
@@ -679,11 +679,12 @@
   .semh-bar-q-row:last-child { border-radius:0 0 10px 10px; }
   .semh-bar-q-row.alt { background:#f9f9f8; }
   .semh-bar-q-label { width:186px; flex-shrink:0; font-size:11.5px; color:#2a5fa3; line-height:1.25; }
-  .semh-bar-track { flex:1; height:16px; background:#efefef; border-radius:4px; position:relative; cursor:pointer; overflow:hidden; }
-  .semh-bar-fill { height:100%; border-radius:4px; transition:width 0.12s; position:absolute; left:0; top:0; }
+  .semh-bar-track { flex:1; height:24px; background:#e8e8e8; border-radius:3px; position:relative; cursor:pointer; overflow:hidden; }
+  .semh-bar-fill { height:100%; border-radius:2px; transition:width 0.12s; position:absolute; left:0; top:0; }
   .semh-bar-val { width:20px; text-align:right; font-size:11px; font-weight:700; color:#999; flex-shrink:0; }
   /* tick lines at 33% and 67% */
   .semh-bar-track .tick { position:absolute; top:0; bottom:0; width:1px; background:rgba(255,255,255,0.6); z-index:1; pointer-events:none; }
+  .semh-bar-dot { position:absolute; top:50%; width:10px; height:10px; border-radius:50%; background:#111; transform:translate(-50%,-50%); pointer-events:none; z-index:2; transition:left 0.12s; }
   /* Gauge */
   .semh-gauge-wrap { display:flex; flex-direction:column; align-items:center; margin:12px 0 4px; }
   .semh-gauge-label { font-size:11px; color:#888; margin-top:4px; text-align:center; }
@@ -5497,8 +5498,22 @@ function semhBarClick(evt, qId, wayColor, bScore) {
 
 function semhRate(qId, val, wayColor, bScore) {
   _semhScores[qId] = val;
+  const pct = Math.round(val/3*100);
   const fill = document.getElementById(`semh-bf-${qId}`);
-  if (fill) { fill.style.width = Math.round(val/3*100)+'%'; fill.style.background = wayColor; }
+  if (fill) { fill.style.width = pct+'%'; fill.style.background = wayColor; }
+  // Update or create dot
+  const track = fill ? fill.parentElement : null;
+  if (track) {
+    let dot = document.getElementById(`semh-dot-${qId}`);
+    if (!dot) {
+      dot = document.createElement('div');
+      dot.id = `semh-dot-${qId}`;
+      dot.className = 'semh-bar-dot';
+      track.appendChild(dot);
+    }
+    dot.style.left = pct+'%';
+    dot.style.background = (bScore !== null && bScore !== undefined && val < bScore) ? '#c0392b' : '#111';
+  }
   const vb = document.getElementById(`semh-vb-${qId}`);
   if (vb) vb.textContent = val;
   const da = document.getElementById(`semh-da-${qId}`);
@@ -5537,73 +5552,114 @@ function _renderSEMHQuestionnaire() {
   const done = SEMH_QUESTIONS.filter(q => _semhScores[q.id] !== undefined).length;
   const tot  = semhTotalScore(_semhScores);
 
-  let bodyHtml = '';
+  // Build review stats if applicable
+  let avChangeHtml = '';
+  if (type === 'review' && baseScores) {
+    const rated = SEMH_QUESTIONS.filter(q => _semhScores[q.id] !== undefined);
+    let improved = 0, unchanged = 0, declined = 0, totalDelta = 0;
+    rated.forEach(q => {
+      const cur = _semhScores[q.id], base = baseScores[q.id] ?? 0;
+      const d = cur - base;
+      totalDelta += d;
+      if (d > 0) improved++; else if (d < 0) declined++; else unchanged++;
+    });
+    const avgPct = rated.length ? Math.round((totalDelta / rated.length) / 3 * 100 * 10) / 10 : 0;
+    const sign = avgPct >= 0 ? '+' : '';
+    const col = avgPct > 0 ? '#1a7a4a' : avgPct < 0 ? '#c0392b' : '#888';
+    avChangeHtml = `<div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;padding:12px 16px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border)">
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--muted);margin-bottom:2px">Av. Change</div>
+        <div style="font-size:28px;font-weight:800;color:${col}">${sign}${avgPct}%</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">
+        <span style="color:#1a7a4a;font-weight:600">+${improved} improved</span> &nbsp;·&nbsp;
+        <span style="font-weight:600">${unchanged} unchanged</span> &nbsp;·&nbsp;
+        <span style="color:#c0392b;font-weight:600">-${declined} declined</span>
+      </div>
+    </div>`;
+  }
+
+  // Column headers (once at top)
+  const colHdrs = `<div style="display:flex;padding:4px 16px 4px 0;margin-bottom:2px">
+    <div style="width:240px;flex-shrink:0"></div>
+    ${['Never','Sometimes','Usually','Always'].map(l=>`<div style="flex:1;text-align:center;font-size:10px;font-weight:700;color:#bbb;text-transform:uppercase;letter-spacing:0.5px">${l}</div>`).join('')}
+    <div style="width:32px"></div>
+  </div>`;
+
+  // All questions in a single flat list, colour-coded by way
+  let rows = '';
+  let alt = 0;
   SEMH_WAYS.forEach(way => {
-    const doms = SEMH_DOMAINS.filter(d => d.way === way.id);
-    let inner = '';
-    let alt = 0;
-    doms.forEach(dom => {
-      inner += `<div style="padding:3px 14px 2px 14px;background:${way.bg};border:1px solid ${way.color}25;border-top:none;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:${way.color}">${dom.label}</div>`;
-      // Column headers once per domain
-      inner += `<div style="display:flex;padding:2px 14px;border:1px solid #eee;border-top:none;background:#fafafa">
-        <div style="width:190px;flex-shrink:0"></div>
-        ${['Never','Sometimes','Usually','Always'].map(l=>`<div style="flex:1;text-align:center;font-size:9px;font-weight:700;color:#ccc;text-transform:uppercase;letter-spacing:0.4px">${l}</div>`).join('')}
-        <div style="width:28px"></div>
-      </div>`;
+    SEMH_DOMAINS.filter(d => d.way === way.id).forEach(dom => {
       SEMH_QUESTIONS.filter(q => q.domain === dom.id).forEach(q => {
-        const cur    = _semhScores[q.id];
-        const hasSc  = cur !== undefined;
+        const cur   = _semhScores[q.id];
+        const hasSc = cur !== undefined;
         const bScore = baseScores ? (baseScores[q.id] ?? null) : null;
-        const isDec  = hasSc && bScore !== null && cur < bScore;
-        const pct    = hasSc ? Math.round(cur/3*100) : 0;
-        const altCls = alt++ % 2 === 1 ? ' alt' : '';
-        inner += `<div class="semh-bar-q-row${altCls}" id="semh-qb-${q.id}"
-            onclick="semhBarClick(event,${q.id},'${way.color}',${bScore ?? 'null'})">
-          <div class="semh-bar-q-label" style="width:190px;flex-shrink:0;color:#2a5fa3">${q.text}</div>
-          <div class="semh-bar-track" style="flex:1">
-            <div class="semh-bar-fill" id="semh-bf-${q.id}" style="width:${pct}%;background:${hasSc?way.color:'transparent'}"></div>
-            <div class="tick" style="left:33.33%"></div>
-            <div class="tick" style="left:66.67%"></div>
-          </div>
-          <div id="semh-vb-${q.id}" class="semh-bar-val">${hasSc?cur:'—'}</div>
-          <div id="semh-da-${q.id}" class="semh-dec-arrow" style="width:14px;visibility:${isDec?'visible':'hidden'}">↓</div>
+        const pct   = hasSc ? Math.round(cur/3*100) : 0;
+        const bPct  = (bScore !== null) ? Math.round(bScore/3*100) : null;
+        const delta = (hasSc && bScore !== null) ? cur - bScore : null;
+        const deltaHtml = delta !== null
+          ? `<span style="font-size:11px;font-weight:700;color:${delta>0?'#1a7a4a':delta<0?'#c0392b':'#aaa'};min-width:24px;text-align:right">${delta>0?'+':''}${delta!==0?delta:''}</span>`
+          : `<span style="min-width:24px"></span>`;
+        const bg = alt++ % 2 === 1 ? '#f9f9f8' : 'white';
+
+        // In review mode: show grey baseline bar + coloured review bar
+        const barInner = (type === 'review' && bPct !== null)
+          ? `<div style="position:absolute;left:0;top:0;height:100%;width:${bPct}%;background:#d0d0d0;border-radius:2px"></div>
+             <div id="semh-bf-${q.id}" style="position:absolute;left:0;top:0;height:100%;width:${hasSc?pct:bPct}%;background:${way.color};border-radius:2px;opacity:0.85;transition:width 0.12s"></div>
+             <div id="semh-dot-${q.id}" class="semh-bar-dot" style="left:${hasSc?pct:bPct}%;background:${delta!==null&&delta<0?'#c0392b':'#111'}"></div>`
+          : `<div id="semh-bf-${q.id}" style="position:absolute;left:0;top:0;height:100%;width:${pct}%;background:${hasSc?way.color:'transparent'};border-radius:2px;transition:width 0.12s"></div>
+             ${hasSc?`<div id="semh-dot-${q.id}" class="semh-bar-dot" style="left:${pct}%"></div>`:''}`;
+
+        rows += `<div id="semh-qb-${q.id}" style="display:flex;align-items:center;padding:6px 0;background:${bg};border-bottom:1px solid #f0f0f0;cursor:pointer"
+            onclick="semhBarClick(event,${q.id},'${way.color}',${bScore??'null'})">
+          <div style="width:240px;flex-shrink:0;font-size:12px;color:#2a5fa3;line-height:1.3;padding-right:12px">${q.text}</div>
+          <div class="semh-bar-track" style="flex:1;position:relative">${barInner}</div>
+          <div id="semh-vb-${q.id}" style="width:24px;text-align:right;font-size:11px;font-weight:700;color:#999;flex-shrink:0;margin-left:6px">${hasSc?cur:'—'}</div>
+          ${deltaHtml}
         </div>`;
       });
     });
-    bodyHtml += `<div style="margin-bottom:18px">
-      <div class="semh-way-hdr2" style="background:${way.color}">${way.label}</div>
-      ${inner}
-    </div>`;
   });
 
+  // Gauge section
+  const gaugeSection = type === 'review' && baseScores
+    ? `<div style="display:flex;align-items:center;justify-content:center;gap:24px;margin-bottom:24px;flex-wrap:wrap">
+        <div style="text-align:center">${_semhGaugeSvg(semhTotalScore(baseScores), 96)}
+          <div style="font-size:11px;color:#888;margin-top:2px">SEMH Baseline</div></div>
+        <div style="font-size:24px;color:#bbb">→</div>
+        <div style="text-align:center"><div id="semh-live-gauge">${_semhGaugeSvg(tot, 96)}</div>
+          <div style="font-size:11px;color:#888;margin-top:2px">SEMH Current</div></div>
+      </div>`
+    : `<div style="text-align:center;margin-bottom:24px">
+        <div id="semh-live-gauge">${_semhGaugeSvg(tot, 96)}</div>
+        <div style="font-size:11px;color:#888;margin-top:4px">SEMH ${type==='baseline'?'Baseline':'Review'}</div>
+      </div>`;
+
   el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:1.25rem;flex-wrap:wrap">
       <button class="btn-ghost" onclick="openStudentSEMH('${upn}')" style="font-size:13px;font-weight:600">← Back</button>
       <div style="font-size:16px;font-weight:700;color:#1a2744;flex:1">${type==='baseline'?'Baseline':'Review'} Assessment — ${name}</div>
-    </div>
-    <div style="display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px">
-      <div style="background:var(--surface);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.07);flex:1;min-width:280px">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${_semhEditMode?'Editing — click any bar to adjust scores':'Click on a bar to set the rating (Never→Always)'}</div>
-        <div style="background:#e0e0e0;border-radius:99px;height:5px;overflow:hidden;margin-bottom:4px">
-          <div id="semh-prog-fill" style="height:100%;border-radius:99px;background:linear-gradient(90deg,var(--teal),#14a0a5);transition:width 0.3s;width:${Math.round(done/32*100)}%"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:4px">
-          <span id="semh-prog-text" style="font-size:12px;color:var(--muted)">${done} / 32 rated</span>
-          <div style="display:flex;gap:8px">
-            <input type="date" id="semh-q-date" value="${existingDate}" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px" />
-            <input type="text"  id="semh-q-staff" value="${existingStaff}" placeholder="Staff name" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:140px" />
-          </div>
-        </div>
-      </div>
-      <div style="background:var(--surface);border-radius:var(--radius-lg);padding:12px 20px;box-shadow:0 2px 8px rgba(0,0,0,0.07);text-align:center">
-        <div id="semh-live-gauge">${_semhGaugeSvg(tot, 96)}</div>
-        <div style="font-size:11px;color:#888;margin-top:2px">SEMH ${type==='baseline'?'Baseline':'Review'}</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="date" id="semh-q-date" value="${existingDate}" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px" />
+        <input type="text" id="semh-q-staff" value="${existingStaff}" placeholder="Staff name" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:130px" />
+        <button id="semh-save-btn" class="btn-primary" style="font-size:13px;padding:8px 20px;display:none" onclick="submitSEMHQuestionnaire()">${_semhEditMode?'💾 Save Changes':'✓ Save'}</button>
       </div>
     </div>
-    <div style="margin-bottom:24px">${bodyHtml}</div>
-    <div style="display:flex;justify-content:flex-end;padding:8px 0 24px;gap:10px">
+    <div style="margin-bottom:6px;display:flex;align-items:center;gap:8px">
+      <div style="background:#e0e0e0;border-radius:99px;height:4px;overflow:hidden;flex:1;max-width:200px">
+        <div id="semh-prog-fill" style="height:100%;border-radius:99px;background:var(--teal);transition:width 0.3s;width:${Math.round(done/32*100)}%"></div>
+      </div>
+      <span id="semh-prog-text" style="font-size:12px;color:var(--muted)">${done} / 32 rated</span>
+    </div>
+    ${gaugeSection}
+    ${avChangeHtml}
+    <div style="background:var(--surface);border-radius:var(--radius-lg);padding:12px 16px;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+      ${colHdrs}
+      ${rows}
+    </div>
+    <div style="padding:16px 0 32px;display:flex;justify-content:flex-end">
       <button class="btn-secondary" onclick="openStudentSEMH('${upn}')">Cancel</button>
-      <button id="semh-save-btn" class="btn-primary" style="font-size:14px;padding:12px 28px;display:none" onclick="submitSEMHQuestionnaire()">${_semhEditMode ? '💾 Save Changes' : '✓ Save Assessment'}</button>
     </div>`;
 
   _semhUpdateSaveBtn();
